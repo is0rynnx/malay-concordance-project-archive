@@ -1,6 +1,6 @@
 # Malay Concordance Project
 
-Texts archived from the Malay Concordance Project (MCP). Each text file begins with the identifying bibliographic and editorial information supplied by MCP.
+Texts archived from the Malay Concordance Project (MCP). This archive currently contains 139 of the 174 texts listed in the MCP catalogue. Each text file begins with the identifying bibliographic and editorial information supplied by MCP.
 
 ## Texts
 
