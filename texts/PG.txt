@@ -1,0 +1,48 @@
+[MCP TEXT METADATA]
+MCP code: PG
+Title: Syair Potong Gaji
+Dates: text: 1831; manuscripts: 1935.
+Provenance: text: Singapore; manuscripts: Malacca.
+MCP word count: 732 words, comprising 152 verses.
+MCP reference scheme: to the stanzas (1-38) of the manuscript text.
+Editorial notes:
+- MS 96 is a copy of MS 91, which is now defective. The text presented here follows Mal.-Pol. 96 as far as 26b, after which Mal.-Pol. 91 resumes. Variants between the manuscripts, and with MHS are noted below.
+Preparation:
+- Added: 1998
+- The text was transcribed by Ian Proudfoot in Paris in 1982, and later checked and corrected against the printed edition of Muhammad Haji Salleh.
+MCP text notes:
+- PG 31b | akan | MS 96: kan
+- PG 8a | aweh | MHS: oh
+- PG 10c | beralah | MS 91: berAllah (haplography from 10a), as also MHS
+- PG 36d | bertindan | MHS: bertandan
+- PG 37c | bura | MS 96: buburnya
+- PG 21c | burung | MS 91: beruang
+- PG 33b | dan | MS 91: daun kayu
+- PG 29a | dari | MHS: hadir
+- PG 5b | dedak | MS 91: d.a.d.k, MHS: dadak
+- PG 15c | di manakan | MHS: di manakah
+- PG 38a | dikarang sair | MS 96: karang disair
+- PG 38b | diketahui | MS 96: d.k.y.h.w.y
+- PG 7b | dirancung | MHS: rancang
+- PG 11d | jua | MS 91: ju, MHS: juga
+- PG 26b | kepiran | MHS: kepiaran
+- PG 36d | kurang | MS 96: t.k.w.r.h [?]
+- PG 14a | makan | MHS: memakan
+- PG 35b | mana-mana | MS 96: kemana-kemana
+- PG 30c | mentua | MHS: mertua
+- PG 5c | menyujuk | for menyucuk, as MHS
+- PG 36a | oleh muda | MS 96: ? olehmu di dalam
+- PG 16b | panganan | MHS: penganan
+- PG 34a | perminta | MS 96: permintaan
+- PG 9a | polak | MHS: pulak
+- PG 27a | ramai | MS 96: ramai-ramai
+- PG 12d | rusing | MHS: runsing
+- PG 14c | tercenganglah | MS 91: terjenganglah
+- PG 20a | terendanglah | MS 91: terrendanglah
+- PG 5a | terus | MHS: terasa
+- PG 10d | tidak | MS 91: t.d
+Source bibliography: https://mcp.anu.edu.au/N/PG_bib.html
+Source text notes: https://mcp.anu.edu.au/N/PG_notes.html
+[END MCP TEXT METADATA]
+§§ Ini Syair Potong Gaji dikarang oleh Tuan Siami. | Bahwa ini suatu khabar , yang sangat sekali susah dan sukar , Gawernur Jeneral raja yang besar , perintahnya sekarang jauh bertukar | Yang Dipertuan Besar di negeri Banggala , yang terlebih mulianya dari segala , beberapa taklukkan rakyat dan bala , berkuasa di tanah India segala | berhormat dan kudrat yang tiada bertara , memunyai perintah hukum dan bicara , memeliharakan negeri tak pernah bercendera , termasyhur namanya sekalian ketara | mendatangkan perintah dari Banggala , di atas kita sekalian segala , selaku api yang amat menyala , membakarkan hati tidak berkala | hangusnya terus* ke hati dan jantung , luluh sebagai dedak* dan tepung , sesak menyujuk* tidak tertanggung , masing-masing hairan duduk melengung | seumpama ribut taufan yang menyala , kilat dan petir bersama segala , meniup kapal-kapal perahu-perahu segala , berhanyutan tidak ketahuan hala | kebanyakan yang patah kemudi dan dayung , temberang dan bubutnya bagai dirancung* , tali kelat putus tidak tersambung , hanya yang tinggal topang dan agung | aweh* kasihannya sekali sungguh , melaratlah sudah perahu terlabuh , tidaklah lagi boleh berteduh , perasaan di hati sangatlah jauh | beberapa orang sebagai polak* , mengeluh menangis seperti budak , tumpat sekali pikir dan kehendak , selaku perempuan lakinya talak | bertongkat dagu menyebut Allah , Kampeni pun pandai membuat olah , beberapa lama bekerja beralah* , merosakkan kami tidak* bersalah | dipikir dikenang bertambah rayu , bagaikan sunyi rasanya kalbu , sifat yang jernih kelihatan layu , Allah dan Rasul jua* yang tahu | diam di rumah bertambah bising , ke sana ke mari pergi berunding , bicara muafakat berjalan keliling , mendinginkan hati melipurkan rusing* | hairan sekali semangat melayang , orang besar nan tidak pikir dan timbang , emas dihargakan sebagai loyang , hati siapa tidakkan bergoyang | yang makan* segantang diberinya sejemput , dahulunya beras sekarang melukut , tercenganglah* masing-masing beberapa terkejut , tidaklah tercela dari sebabnya takut | gaji pun dipotong kerja-kerja ditambah , tempat pekerjaan ditukar dipindah , di manakan* hati sekalian tak gundah , kerja yang bertiga seorang sudah | selamanya didukung sekarang diletak , panganan* dari tangannya kanak-kanak disentak , berkaparanlah jatuh ke tanah terhentak , hilanglah budi bicaranya budak | beberapa orang masam dan suram , berhanyutan sebagai perahu yang karam , habislah sudah nasi dan garam , sedikit pun tidak ketinggalan haram | sampai hatinya sungguh perintah sekarang , memberi kecéwa pada sekaliannya orang , berlainan sekali dahulu dan sekarang , susahnya bukan lagi sebarang-barang | tidak sekali menaruh kasihan , di atas kami orang-orang sekalian , sedap dahulu sakitlah kemudian , untung dan nasib sudahlah sekian | terendanglah* kami tidak berminyak , dengan air terbakar dengan angin tertanak , hati dan jantung sangatlah sentak , pendapatan seperti utan yang semak | sakitnya sungguh bukan sebarang , terlanggarlah sudah perahu di karang , terbanyaklah burung* tidak bersarang , demikianlah halnya kami orang sekarang | peraturan dan perintah yang dari Kampeni , hendak dimukir masakan berani , janganlah pulak setara ini , jika lebih pun kami jalani | bagiannya rakyat tiap-tiap negeri , di manakan boleh takut dan ngeri , tak dapat di darat di laut mencari , sebarang lakunya memeliharakan diri | rendah gunung tertinggi harapan , kepada Kampeni bangsa pilihan , laksana sepohon tempat teduhan , menaungi kami dari panasan | selaku sebuah telaganya batu , berair jernih bukan suatu , lazatnya manis sempurna tertentu , sekaliannya bangsa minum di situ | tiap-tiap yang minum air pancuran , sekarang ini sudahlah kepiran* , sangatlah menanggung masyghul dan hairan , tumpat dan sesak rasa pikiran | jadilah ramai* persembahkan surat , menyatakan perihal jalannya melarat , memohonkan ampun yang amat berat , lebih-lebih maklum ke bawah kudrat | kalau-kalau lulus ampun yang demikian , gaji matilah dipohonkan kasihan , kepada tiap-tiap hambamu sekalian , dengan sepatutnya seseorang sekian | akan halnya sekalian yang dari* Bangkahulu , belas dan kasihan sangatlah terlalu , memohonkan kurnia ke atas ulu , minta janganlah direntikan selalu | dari Bangkahulu payahnya nyata , berpindah ke mari anak bini pun beserta , mentua* dan ipar-ipar jangan dikata , sertalah adanya di dalam cita | ditimbang dipikir berulang-ulang , seperti akan* kembali ke negerinya pulang , begitu begini serba kepalang , nyawa dan badan rasa 'kan hilang | perasaan hati sangatlah rendah , kebajikan dibuat tidak berfaedah , beberapa lamanya berkerja sudah , harganya dinilai setimbang ludah | kita seumpama rumput melata , daun dan* kayu yang kering yang amat nyata , orang besar dan raja-raja yang ada mahkota , itu pun kebanyakan kehilangan takhta | perminta* badan di dalam dunia , tiap bangsa hina dan mulia , di manakan boleh mengelakkan dia , menyusahkan hati kita nan sia-sia | hai Singapura tempat maulana , yang telah termasyhur ke mana-mana* , ramai dan makmur dengan sempurna , berakal berbudi bijak laksana | ketahuilah oleh muda* dalam sekarang , kesusahan yang datang atas kami orang , sakitnya bukan-bukan lagi sebarang , bertindan* bertambah sedikit tak kurang* | kepada yang patut kami mengadu , permaklumkan perihal hati yang sedu , kita laksana bura* madu , sebarang yang dapat datang menyudu | tamatlah sudah dikarang sair* , supaya diketahui* oleh yang akhir , batin dipindah pada yang lahir , sekalian yang membaca boleh memikir | tamat
+§§

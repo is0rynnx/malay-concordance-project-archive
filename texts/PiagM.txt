@@ -1,0 +1,95 @@
+[MCP TEXT METADATA]
+MCP code: PiagM
+Title: Piagam Muara Mendras
+Edition: Annabel Teh Gallop, “Piagam Muara Mendras: More Malay Documents from Highland Jambi”, paper given at Crossing Borders in Southeast Asian Archaeology , 13th International Conferences of the European Association of Southeast Asian Archaeologists, Berlin, 2010.
+Dates: A 1719-1743. B text: 1641-1675; manuscript: ~1880. C 1840. D 1882.
+Provenance: texts & manuscripts: Muara Mendras, Jambi, South Sumatra.
+MCP word count: 1102 words.
+MCP reference scheme: to the items ( A - D ) and the parts and paragraphs of Gallop’s edition, thus: PiagM A:a1 ; :s indicates a seal.
+Editorial notes and bibliography:
+- The texts are generally in poor condition and – especially with A – fragmentary. Missing text is marked by ... , and illegible words or parts of words by xxx, xx.
+- Gallop presents a diplomatic edition of these four documents, retaining dialectal and spelling peculiarities. In her preparation of the edition, she was aided by earlier transcriptions of C and D made by Heinzpeter Znoj consulting local informants, and of D by Muh. Djaapar.
+- Gallop’s paper courageously provides English translations of all four texts.
+Preparation:
+- Drakard, Jane. 1999. A kingdom of words: language and power in Sumatra. Shah Alam: Oxford University Press. (South-East Asian Historical Monographs).
+- Gallop, Annabel Teh. 2002. “Malay seal inscriptions: a study in Islamic epigraphy from Southeast Asia.” [Ph.D. thesis]. School of Oriental and African Studies, University of London.
+- Gallop, Annabel Teh. 2009. “Piagam Serampas: Malay documents from highland Jambi.” From distant tales: archaeology and ethnohistory in the highlands of Sumatra, ed. Dominik Bonatz, John Miksic, J. David Neidel, Mai Lin Tjoa-Bonatz; pp.272-322. Newcastle-upon-Tyne: Cambridge Scholars Press.
+- Neidel, John David. 2006. ‘The Garden of Forking Paths: history, its erasure and remembrance in Sumatra’s Kerinci Seblat National Park.’ [Ph.D. thesis]. Yale University.
+- Znoj, Heinzpeter. 2001. “Heterarchy and domination in highland Jambi. The contest for community in a matrilinear society.” Habilitationsschrift, University of Bern.
+Preparation:
+- Added: December 2010
+- A digital text was provided by Annabel Gallop, and adapted to the MCP format. .
+MCP text notes:
+- PiagM Ba:1 | adilnya | a.d.a.l.ny
+- PiagM Ba:2 | celak | c.l.q, ? > calak, ‘likely to happen’
+- PiagM Aa:1 | cikalau | > jikalau
+- PiagM D:1 | dan | text: dan dan
+- PiagM C:2 | diinginkan | d.a.y.n.d.y.n.k.n, Znog: diinginkan
+- PiagM C:1 | dua jaya | d.w.j.a.y
+- PiagM D:2 | Du[r]ian | d.w.y.n
+- PiagM Ba:2 | emban | emban | amban | ambin
+- PiagM Bb:1 | [Em]pang | a.m.p.ng, empang ‘barring, damming, constructing a barrier to check the flow of a stream’
+- PiagM Ba:2 | gegahar | g.g.h.r, cf. gegar quaking, shivering
+- PiagM D:3 | Ingat | a.y.g.w, Znog: Inggo
+- PiagM D:2 | Ipu | Znog: Impuh
+- PiagM Ba:1 | Jami | = Jambi passim
+- PiagM D:3 | jemu | j.m.w
+- PiagM D:2 | ke | l.k
+- PiagM C:1 | Kelakum | Znog: Kelukup
+- PiagM D:2 | Kelukum | Znog: Kelukup
+- PiagM C:1 | Ketawan | k.t.a.w.a.n
+- PiagM C:1 | Ketekal | Znog: Ketangkal
+- PiagM D:1 | khalifah} | j.y.l f.y.l a.r.d.f.l.y.f.h [ sic ]
+- PiagM D:2 | Kumambang | Znog: Kumbang
+- PiagM D:1 | landuh | l.n.d.h, with d.l.n.d.w.h (di landuh) added below the line as clarification or correction.
+- PiagM D:1 | langar | Znog: langgar
+- PiagM D:3 | leba´ | Muh. Djaapar: lembak, ? = lebah ‘bees’
+- PiagM Ba:3 | mahizir | m.a.h.y. z .y.r passim , = mehilir
+- PiagM D:1 | manyepat | : stripping
+- PiagM Bb:1 | mari[mping] | < rimping, perimimping ‘last man in a row’
+- PiagM C:2 | meligang | Znog: melinggang, > melénggang
+- PiagM D:1 | meli[ng]kang | Znog: melinggang
+- PiagM D:2 | memelah | Znog: membelah
+- PiagM C:1 | Mempiyul | m.m.p.y.y.l
+- PiagM C:1 | menapat | m.n.a.p.t, = menepat, Znog: menempuh
+- PiagM D:2 | menapu | Znog: menempuh
+- PiagM D:2 | menapuh | Znog: menempuh
+- PiagM D:2 | meriping | Znog: merimping
+- PiagM C:1 | Mucak | m.w.c.q, i.e. Muncak
+- PiagM Ba:2 | nangu | n.ng.w
+- PiagM D:2 | Pekak | Znog: Paku; Muh. Djaapar: Pekat
+- PiagM D:1 | pengalkan | Znog: penggalkan
+- PiagM C:2 | penggal | Znog: penggalkan
+- PiagM C:1 | penyuran | : sluice, p.w.g.w.a.ng, Znog: punggung
+- PiagM C:1 | Puguang | p.w.g.w.a.ng, Znog: punggung
+- PiagM D:2 | Pugung | Znog: Punggung
+- PiagM Ba:3 | ranah | r.a.n.y
+- PiagM C:1 | Rani | r.a.n.y
+- PiagM Ba:3 | ratu | ? > rantau
+- PiagM Ab:1 | rumbiah | r.m.b.y.y.h
+- PiagM C:1 | Rutai | r.w.t.y, Znog: Runtai
+- PiagM D:2 | Rutai | Znog: Rantai
+- PiagM C:2 | sejabat | Znog: sejajar
+- PiagM Ba:1 | semilan | = sembilan
+- PiagM C:1 | Suwa | ? = sua
+- PiagM C:1 | Suwa | s.w.a
+- PiagM Ba:1 | Syah | cf. Acehnese: Johan Berdaulat
+- PiagM Ba:3 | terajun | = terjun
+- PiagM C:1 | terjun | t.r.j.w.a.n
+- PiagM Ba:1 | terkhidmat | t.r.h.m.t
+- PiagM D:1 | terpagung | Znog: terpanggung
+- PiagM C:2 | tersu[n]dak | S: tersundak
+- PiagM C:2 | Tiangso | t.n.s.a, Znog: anak Raja Jambi
+- PiagM Ba:1 | [z]ill | q.l [ sic ]
+Source bibliography: https://mcp.anu.edu.au/N/PiagM_bib.html
+Source text notes: https://mcp.anu.edu.au/N/PiagM_notes.html
+[END MCP TEXT METADATA]
+§§ ... tahun kepada tahun ha kepada delapan belas hari bulan ... piagam dari bawah Duli Seri Sultan Astra Ingalaga digaduhkan ... ke ilirnya hingga Lubuk Kemumu lalu ke Perawah Besyar menucu Durian ... itulah yang di ilirnya, maka yang di mudiknya hingga muara Danau Besyar ... Seri Sultan kepada Dipati Ratnya Yuda [?], jangan ada orang ... dan mengambil rotan rumbianya dan mengambil buah-buahannya yang di dalam ... xxpnya dan mengambil silangnya, maka cikalau* ada orang mengambil ... diisinya yang di dalam watas utan ini maka tiada lagi ... demikian itu yang utannya [?] kenalah denda dalam setahil sepaha dan ... hubaya2 jangan kamu lalui, wa-katibuhu Ki Astra Negara tamat al-kalam. ... inilah d.a.n ... ... tengah naik ini ... ... xx.t.n tanah Duli Sulta[n] ... ... ny.w.r ... maka ... ... maka lalu ke hucung Bukit Pandan ... ... xx.y tanduk kayu pancang dan mengambil buluh bilah ... ... mengxxngi sungai danaunya dan lupuk s.xx ... ... rotan rumbiah* atau barang sexx ... ... xx.a.t.n.xx ... ... Setia Wijaya ... fi balad Palembang dar al-salam ...
+¶ Bahwa inilah ... tapak s.a.w.xx ... / Ranai Yuda axx / inangkanlah [?] tanah [?] yang sebaikkah [?]
+§ 
+§ Hijrah al-nabi salla Allah `alayhi wa-sallam, dari pada [tahu]n [?] yang terpikir maka oleh ... khalifah itu segala raja-raja yang sering menghukumkan ... segala manusia dengan hukum yang telxx ... xxhasi kepada al-nabi Muhammad salla Allah `alayhi wa-sallam, maka iaitu berdaulat Sultan Kakandah Taj al-`Alam Safiat al-Din Syah Syah* Berdaulat [z]ill* Allah fi al-`alam dan yang ditinggikan Allah darjatnya dan hadrat yang maha mulia yang telah ada terkhidmat* al-khayri di dalam negeri Jami* dan tanah ... xx.b depan alamnya dengan adilnya* memegangkan sembah semilan* lurah pucuk ... xx.g Jami dengan firman Allah ta`ala subhanahu inni ja`il fi al-[ard] khalifah yakni maka dirikan raja di atas dunia artinya tempatku maluluskan hukum yang amat adil2. Inilah tapak tangan Sultan ... xx.c.b karniamu gegahar* akan Dipati Ranah Udah inginnya tanah genting cab bab nangu* [?] bekepala [dua] [?] di dalam celak* piagam Dipati Udah Mengala emban* d.d.h Dipati Ranah Udah adanya. Maka manurun ka Lubuk Kemumu. Maka menaiki mahizir* ka Lubuk Lubang ... xxiualan, maka menaiki ke Pauh Besyar. Maka terajun* ka Lubuk Rawah. Maka menaiki Pematang Bunguh ... memxx ... Pematang Bunguh ... ... Keling, maka manurun ke Muara Mengemberan ... yakninya ... raya jalan ke Rawas. Maka mahizir akan ratu* l.w.l maka manuju Durian Bunga, yakninya dari itu ... xx.w, maka manuju ranah* Sungai Seluang, maka mahizir akan Sungai Masat, maka manuju ranah luwas di ha[da]pan bukit lagi indxx ... terajun ke [Batu Empang]. Maka mari[mping]* ... Bukit Rutai. Maka manurun ke ranah ... [Em]pang* Kepayang. Maka menaiki Kepayang Tinggi b.a.t.t ...
+§ al-Sultan Mahmud Muhyiuddin Sultan Ratu Anum Dilaga. Bahwa ini celak piagam Dipati Mucak* Teralam Tiang Igama dua jaya* [?] Dipati Rani* Uda. Keluar daripada tanah Durian Balai lalu ke Lubuk Lubang Muara Mempiyul,* lalu mehilir Lubuk Kemumu, menaiki ka Tanah Genting Sawa Meluncur, lalu meniti Pematang Bunga tempat Durian Gabu, lalu ke Lubuk Pekak, mehilir rantau Limau Kapas, lalu muara Sungai Seluang, menuju peraduan sago, menurun Bukit Rejang, menapat* Muara Sungai Masat, mehilir ke Batu Empang, maka merimping Bukit Rutai,* terjun ke ranah Empang Kepayang, lalu menaiki Kepayang Tinggi Bani, meniti pematang Puguang* Parang, lalu terjun Rantau Lalang, lepas ka Sarik Bajajo Betuang Manis, lalu meniti Pematang Mipis terjun kelua[r] Rawas, menaiki ulu Kuis Tinggi, lalu melayang penyuran* Danau Besyar, menaiki Bukit Barisan, tepat ke Pauh Manis Masam Sebelah, terjun Muara Suwa* Batu Bergumbak, lalu melayang Batang Ketahun, lalu ke Lubuk Manau Kuning Batang Ketawan,* menaiki Bukit Barisan, terjun* Muara Impu Buih, menaiki Bukit Pandan Tua, lalu terjun peraduan Limau Keling, lalu Muara Sungai Kelakum,* lalu mudik Rantau Ketekal,* lalu mendapat penyuran danau, maka melayang ke paraduan Kayu Pasak Bercupang Empat. Suatu pasal lagi dari pada anak Raja Tiangso* [?] yang bernama Si Bujang Jami, maka diinginkan* [?] Pemucak menjadi Dipati Mucak Alam Tiang Igama di dalam alam Sungai Tenang dua sejabat* dengan Dipati Rana Uda duduk di tanah [Du]rian Balai, tahu buah masam buah manis, kuasa pulang pada Dipati Mucak merintah di dalam Puguk Semilan, ilir muara mudik mehulukan, melonjak tiada tersu[n]dak,* meligang* tiada terpapas, yang terlintang penggal* yang terpanggung jatuhkan, di dalam pungguk yang semilan, demikian pegangan Dipati Mucak Alam Tiang Igama dan Dipati Uda Mengala. Tamat kalam Pangiran Jami Kesuma cap Sultan Abdul Rahman Nasiruddin ibn Sultan Mahmud Muhiuddin. Sanat 1256.
+§ 
+§ sanat 1256 al-wāthiq billah al-Jalī al-Sultan Abdul Rahman Nasaruddin ibn al-Sultan Mahmud Muhyiuddin Sultan Ratu Anum Dilaga. Bahwa ini celak piagam Dipati Mucak* Teralam Tiang Igama dua ⟦UNRESOLVED_JOIN⟧ bin Sultan Ratu Ahmad [Nasirud]din [29]9. [Qur´an 2:30] ... Ja`il fi al-ard khalifah.* Inilah celak piagam Dipati Muncak terjujung di atas jemala Dipati Muncak Alam Tiang Igama Alam Sungai Tenang. Pasal ini Pemuncak pulang ke Rawas, maka hilirlah Raja Tiangso mengadap Sultan Jami mekhabarkan Pemucak hilir ke Rawas sekarang, maka diangkatkan Sultan anak Raja Tiangso yang bernama Bujang Jami akan jadi Dipati Muncak Alam Tiang Igama di Alam Sungai [Tenang], merintahkan di dalam adat atau di dalam igama di dalam Alam Sungai Tenang, hilir muarakan dan mudik mehulukan manyepat* memenggal melarik menyejukan dari landuh* balai yang dua, tegak tiada tersundak, duduk tiada terpapas, meli[ng]kang* tiada tersangkut, barang yang terpagung* jatuhkan, barang yang terlintang pengalkan,* dan seperti di dalam igama demikian juga merintahkan membuat langar* dan surau dan mesjid dan sembahyang lima waktu dan zakat dan* fitrah dan sesiapa tia[da] mau mengerjakan maka dikutukkan firman Allah ta`ala dengan tiga kutuk dan ... Suatu pasal lagi daripada tanah yang dipegang Dipati Muncak di dalam perbukala: dari tanah Du[r]ian* Balai lalu ke Lubuk Lubang Muara Mempiyul, dari situ hilir ke Lubuk Kamumu, maka menaiki ke Tanah Genting Sawa Meluncur, maka mendapat Du[r]ian Rabung, dari Du[r]ian Rabung maka memelah* Pematang Bunga, maka terjun ke Lubuk Pekak,* dari Lubuk Pekak hilir ke Rantau Limau Kapas mendapat Muara Sungai Seluang, menapuh* peraduan sago, lalu ka Bukit Rejang, terjun ke Lubuk Muara Sungai Masat, mehilir ke Lubuk Batu Kiari, maka mudik meriping* Bukit Rutai,* terjun ka hulu Narso Gedang, dari situ maka menda[pat] Muara Sungai Empang Kepayang, lalu Kepayang Belarik, mendapat Kepayang Tinggi Bani, menaiki Pematang Mipis, lalu Pematang Pugung* Parang, terjun ke hulu Tengkui, lalu ka hulu Tengkui Kecik, mudik ke Rantau Lalang, menuju Serik Bejajo Batung Manis, lalu ke* hulu Rawas, mendapat ka hulu Kuis Tinggi, mudik ka hulu Rawas, melayang penyura[n] Danau Besyar, dari situ menuju ke Pauh Kumambang* Manis Masam Sebelah, terjun Muara Suwa Batu Begombak dalam Batang Ketahun, merimping Batang Ketahun, lalu ke Teluk Manau Kuning, menaiki Bukit Barisan, terjun Muara Ipu* Buih, menaiki Bukit Pandan Tua, terjun ke paraduan Limau Kaling, lalu Muara Sungai Kelukum,* mudik ke Rantau Ketangkal, melayang penyuran Danau Gedang, menapu* bendung ke Tangkal Luas, mendapat ke paraduan Kayu Pasak Berjupang Empat. Ingat* [?] itu ke mari leba´* sama kuwang paya rumbia lupuk danau bukit gunung utan tanah jemu* kelaka, itulah yang dipegang Dipati Muncak di dalam perbukala. Tamatlah kalam Pangiran Jami Kas[uma] ... cap sultan ... 8 hari bulan ...
+§§ 
+§ Sultan Kakanda Ahmad Nasiruddin bin Sultan Ratu Ahmad [Nasirud]din [29]9. [Qur´an 2:30] ... Ja`il fi al-ard khalifah.* Inilah celak

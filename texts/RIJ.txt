@@ -1,0 +1,29 @@
+[MCP TEXT METADATA]
+MCP code: RIJ
+Title: Raja Inggeris Jubili
+Edition: B. Murtagh, "Two Malay poems commemorating Queen Victoria’s Golden Jubilee of 1887", Jurnal Filologi Melayu , jilid 11, 2003.
+Manuscript: SOAS MS 46944, School of Oriental and African Studies, London.
+Dates: text & manuscript: 1887.
+Provenance: text & manuscript: probably Singapore or Malacca.
+MCP word count: 355 words, comprising 80 verses.
+MCP reference scheme: to the serially numbered stanzas (1-20) of the text.
+Editorial notes and bibliography:
+- This syair celebrates the Jubilee of Queen Victoria in 1887. The text has been carefully edited by Ben Murtagh for publication in Jurnal Filologi Melayu. Murtagh comments:
+- It is a short syair of 20 stanzas, laudatory in style, is mainly concerned with describing the virtues of Queen Victoria on the occasion of her being fifty years on the throne. No mention is made in this panegyric of authorship or the date of composition. It is likely that the poem was composed in the year of the Golden Jubilee 1887.
+- The manuscript SOAS MS 46944 contains miscellaneous poems collected by W.E. Maxwell (Ricklefs and Voorhoeve, 1977: 166) including hand-written translations of God Save the Queen in Malay and Urdu, both in roman script, together with a printed copy of the Malay version.
+Preparation:
+- Added: March 2003
+- A pre-publication digital text was provided by Ben Murtagh, and adapted to the MCP format.
+MCP text notes:
+- RIJ 10c | daurnya | d-w r a ny. The alif seems to have been inserted on second reading, probably in the wrong place, as dura has little meaning in this contét.
+- RIJ 4b | Inggeris | a ng-g-r y-s
+- RIJ 17c | Inglan | a ng-la n
+- RIJ 13b | jubili | j-b-l-y
+- RIJ 8d | Londan | l-n-d a n
+- RIJ 1c | sudah | s/r-d/u h : sudah?
+- RIJ 12c | sudah | s/r-d h : sudah?
+Source bibliography: https://mcp.anu.edu.au/N/RIJ_bib.html
+Source text notes: https://mcp.anu.edu.au/N/RIJ_notes.html
+[END MCP TEXT METADATA]
+§§ =| Dengarkan tuan suatu rencana , perkhabaran ini yang amat bena , lima puluh tahun bilangan sudah* sempurna , diperintah oleh raja yang ghana. | Seumpama bunga melur di tepi kolam , baunya semerbak serata alam , laksana pudi permata nilam , gah masyhur siang dan malam. | Diperbuat huma ditanam padi , eloknya jadi tiada terperi , hebat dipandang cahaya berseri , padi diketam lima puluh kali. | Lima puluh tahun sahlah nyata , Raja Inggeris* bersemayam di atas takhta , memerintah negeri semata2 , sekalian rakyat bersuka cita. | Raja yang mulia lagi budiman , rakyat bela sangatlah perkenan , akal bicara sempurna iman , hukumnya adil lagi dermawan. | Raja berbangsawan lagi perkasa , diperintah negeri sekalian desa , turun temurun memiliki desa , akal bicara sangatlah bisa. | Raja setiawan manis hatinya , elok kelakuan segenap perinya , tiada berbanding dan umpamanya , ialah raja yang berasal dan usulnya. | Baginda itu raja perempuan , permaisuri nama gelaran , bersemayam di atas takhta kerajaan , selamat sejahtera di dalam Londan.* | Tanah Hindi diperintahnya , sekalian raja2 tunduk kepadanya , masing2 pinta aman kepadanya , dikurniai derma kepada sekaliannya. | Baginda itu raja bermahkota , asal keturunan raja bertakhta , daurnya* masa di atas takhta , hebatnya sangat tiada terkata. | Sangatlah gemar hati rakyat bela , diperhambakan diri menunduk kepala , doa dipinta menjauhkan bala , kepada Allah subhanahu wa taala. | Baginda itu raja bertuah , lagi berdaulat bertambah limpah , masanya sudah* sampai menerima rahmah , alamat itulah menaik darjah. | Alamat yang baik ketandaan tahunnya , jubili* nama gelarannya , maknanya itu jadi kelimpahannya , digelarkan orang putih akan rajanya. | Kehendak kita hendak berhiasan , segala tempat serta halaman , suka hati sekalian taulan , berhiaskan desa tempat perhimpunan. | Termasya diperbuat dengan hukum yang ghana , dijunjung oleh Melayu Hindu dan Cina , kaya miskin hina dina , suka menjunjung titah duli yang ghana. | Bandar hias panji2 dan pelita , segenap tempat cerahnya rata , berjenis2 alat pelita , tiadalah boleh hendak dikata. | Hari yang pertama mulai permainan , itulah hari dipersembah suratan , pada kebawah duli Raja Inglan* , selamat sempurna di atas kerajaan. | Hari itulah perhimpun rakyat bela , masing2 bahasa diperminta doa , menjauhkan sekalian mara bahaya , daripada raja yang amat mulia. | Daulat tuanku raja yang mulia , bertambah2 daulat di atas takhta , diberkatkan Tuhan azzawajalla , akan jubili yang amat bahagia. | Sekalian bangsa bersatu pakat , menjunjung titah bersyarikat , dengan kesukaan kita berpakat , memuji Seri Maharaja Puteri yang izzat. |
+§§
