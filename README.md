@@ -1,6 +1,6 @@
 # Malay Concordance Project
 
-Texts archived from the Malay Concordance Project (MCP). This archive currently contains 139 of the 174 texts listed in the MCP catalogue. Each text file begins with the identifying bibliographic and editorial information supplied by MCP.
+Texts archived from the Malay Concordance Project (MCP). This archive currently contains 170 of the 174 texts listed in the MCP catalogue. Each text file begins with the identifying bibliographic and editorial information supplied by MCP.
 
 ## Texts
 
@@ -133,15 +133,46 @@ Texts archived from the Malay Concordance Project (MCP). This archive currently 
 | `RT` | [`RT.txt`](texts/RT.txt) | Risalah fi 'l-Tawhid |
 | `S` | [`S.txt`](texts/S.txt) | Saudara |
 | `SA` | [`SA.txt`](texts/SA.txt) | Sharāb al-`Āshikīn |
+| `SAB` | [`SAB.txt`](texts/SAB.txt) | Syair almarhum Sultan Abubakar |
 | `SBima` | [`SBima.txt`](texts/SBima.txt) | Hikayat Sang Bima |
+| `SBod` | [`SBod.txt`](texts/SBod.txt) | Syair Saudagar Bodoh |
+| `Siak` | [`Siak.txt`](texts/Siak.txt) | Hikayat Siak |
+| `Sikka` | [`Sikka.txt`](texts/Sikka.txt) | Hikayat Kerajaan Sikka |
+| `SITS` | [`SITS.txt`](texts/SITS.txt) | Surat Ingatan Tengku Said |
+| `SJal` | [`SJal.txt`](texts/SJal.txt) | Surat Keterangan Syeikh Jalaluddin |
+| `SKel` | [`SKel.txt`](texts/SKel.txt) | Hikayat Seri Kelantan |
 | `SM` | [`SM.txt`](texts/SM.txt) | Sejarah Melayu |
 | `SMrdn` | [`SMrdn.txt`](texts/SMrdn.txt) | Hikayat Syah Mardan |
+| `Srg` | [`Srg.txt`](texts/Srg.txt) | Syair Syurga |
+| `SRN` | [`SRN.txt`](texts/SRN.txt) | Surat Beriluminasi Raja Nusantara |
+| `SSiti` | [`SSiti.txt`](texts/SSiti.txt) | Syair Seratus Siti |
 | `ST` | [`ST.txt`](texts/ST.txt) | Sufi Tracts |
+| `Sunur` | [`Sunur.txt`](texts/Sunur.txt) | Syair Sunur |
 | `SWB` | [`SWB.txt`](texts/SWB.txt) | Spraek ende Woord-Boek |
+| `T&K` | [`T&K.txt`](texts/T&K.txt) | Syair Raja Tedung dengan Raja Katak |
+| `TBarus` | [`TBarus.txt`](texts/TBarus.txt) | Tambo Barus Hilir |
+| `Tkbr` | [`Tkbr.txt`](texts/Tkbr.txt) | Kitab Takbir |
 | `TM` | [`TM.txt`](texts/TM.txt) | Tarjumān al-Mustafīd |
+| `TN` | [`TN.txt`](texts/TN.txt) | Tuhfat al-Nafis |
 | `TS.K` | [`TS.K.txt`](texts/TS.K.txt) | Taj al-Salatin (ed. Khalid) |
 | `TS.R` | [`TS.R.txt`](texts/TS.R.txt) | Taj al-Salatin (Roorda) |
 | `Tuah` | [`Tuah.txt`](texts/Tuah.txt) | Hikayat Hang Tuah |
+| `TW` | [`TW.txt`](texts/TW.txt) | Mukhtasar Tawarikh al-Wusta |
+| `TZA` | [`TZA.txt`](texts/TZA.txt) | Syair Tawarikh Zainal Abidin yang Ketiga |
+| `UKJ` | [`UKJ.txt`](texts/UKJ.txt) | Ucapan Kwin Jubili |
+| `Ungg` | [`Ungg.txt`](texts/Ungg.txt) | Syair Unggas Soal Jawab |
 | `UU` | [`UU.txt`](texts/UU.txt) | Undang-Undang Melaka |
+| `VdW` | [`VdW.txt`](texts/VdW.txt) | Surat kepada Von de Wall |
+| `VN` | [`VN.txt`](texts/VN.txt) | Vernacular Newspapers - Editorials |
+| `Wangk` | [`Wangk.txt`](texts/Wangk.txt) | Syair Perang Wangkang |
+| `WBima` | [`WBima.txt`](texts/WBima.txt) | Warkah Bima |
+| `WBrn` | [`WBrn.txt`](texts/WBrn.txt) | Warkah Brunei |
 | `WButon` | [`WButon.txt`](texts/WButon.txt) | Warkah Buton |
+| `WHaji` | [`WHaji.txt`](texts/WHaji.txt) | Buku Wulang Haji |
+| `WM` | [`WM.txt`](texts/WM.txt) | Warta Malaya |
+| `Wrkh` | [`Wrkh.txt`](texts/Wrkh.txt) | Warisan Warkah Melayu |
+| `Ws` | [`Ws.txt`](texts/Ws.txt) | Warnasarie |
+| `WSln` | [`WSln.txt`](texts/WSln.txt) | Warkah dari Sailan |
 | `WSumB` | [`WSumB.txt`](texts/WSumB.txt) | Warkah Sumatera Barat |
+| `WTgn` | [`WTgn.txt`](texts/WTgn.txt) | Warkah Terengganu |
+| `Zub` | [`Zub.txt`](texts/Zub.txt) | Syair Siti Zubaidah Perang Cina |
