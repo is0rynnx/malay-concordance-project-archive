@@ -2,6 +2,12 @@
 
 Texts archived from the Malay Concordance Project (MCP). This archive currently contains 170 of the 174 texts listed in the MCP catalogue. Each text file begins with the identifying bibliographic and editorial information supplied by MCP.
 
+## Live site
+
+**Malay Concordance:** https://is0rynnx.github.io/malay-concordance-project-archive/
+
+The searchable site is built automatically from this repository. GitHub Actions runs `tools/build_site.py` to generate the search index and static site, validates the output with `tools/test_site.py`, and publishes it through GitHub Pages whenever the corpus or site source on `main` changes.
+
 ## Texts
 
 | MCP abbreviation | File | Title |
