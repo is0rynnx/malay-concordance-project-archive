@@ -16,14 +16,15 @@
   let searchResult = null;
   let currentPage = 1;
   let currentReader = null;
+  let currentReaderChar = null;
 
   const modeHelp = {
-    word: 'Multiple words are treated as AND. Prefix a word with - to exclude texts containing it.',
-    phrase: 'Find adjacent indexed word forms in exactly this order.',
-    wildcard: 'Use * for any sequence and ? for one character. Example: meng*kan',
-    regex: 'Regular expression matched against vocabulary forms. Example: ^ber.*an$',
+    word: 'Multiple words must all occur in the same text. Prefix a word with - to exclude it.',
+    phrase: 'Find adjacent word forms in exactly this order.',
+    wildcard: 'Use * for any sequence and ? for one character.',
+    regex: 'Match a JavaScript regular expression against indexed word forms.',
     near: 'Use word1 ~5 word2 or word1 NEAR/5 word2.',
-    morph: 'Heuristic Malay prefix/suffix expansion around a root. Useful for discovery rather than formal analysis.'
+    morph: 'Expand one root through common Malay affix patterns. Intended for discovery.'
   };
 
   function norm(s) {
@@ -315,27 +316,80 @@
     currentPage = Math.min(currentPage, pages);
     const pageHits = hits.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
     const docs = new Set(hits.map(h => h.doc)).size;
+    const modeLabel = document.querySelector(`input[name="mode"][value="${CSS.escape(mode)}"]`)?.nextElementSibling?.textContent || mode;
+
+    els.resultHeading.textContent = total ? `Results for “${searchResult.query}”` : `No results for “${searchResult.query}”`;
     els.searchStatus.className = 'status-line';
-    els.searchStatus.textContent = total ? `${total.toLocaleString()} occurrence${total === 1 ? '' : 's'} in ${docs} text${docs === 1 ? '' : 's'} · ${elapsed.toFixed(0)} ms${truncated ? ' · display capped' : ''}` : 'No matches.';
+    els.searchStatus.textContent = total
+      ? `${total.toLocaleString()} occurrence${total === 1 ? '' : 's'} in ${docs} text${docs === 1 ? '' : 's'} · ${modeLabel} · ${elapsed.toFixed(0)} ms${truncated ? ' · display capped' : ''}`
+      : 'No occurrences found with the current search settings.';
     els.resultStats.innerHTML = '';
     if (['wildcard','regex','morph'].includes(mode)) addStat(`${candidateCount.toLocaleString()} matching form${candidateCount === 1 ? '' : 's'}`);
-    addStat(`${manifest.document_count} texts indexed`);
+    if (truncated) addStat('Large result set capped for browser performance');
     renderDistribution(distribution || []);
     els.exportCsv.disabled = !hits.length;
-    if (!total) { els.results.innerHTML = '<div class="empty">Try a different spelling, search mode, or remove filters.</div>'; return; }
+    document.body.classList.toggle('has-results', !!total);
+
+    if (!total) {
+      els.results.innerHTML = '<div class="empty">Try another spelling, search mode, or remove a filter.</div>';
+      els.pagination.innerHTML = '';
+      return;
+    }
 
     const needed = [...new Set(pageHits.map(h => h.doc))];
     await Promise.all(needed.map(loadDoc));
     els.results.innerHTML = '';
+
+    const groups = [];
     for (const hit of pageHits) {
-      const d = manifest.documents[hit.doc];
-      const body = (await loadDoc(hit.doc)).body;
-      const k = kwic(body, hit);
-      const card = document.createElement('article'); card.className = 'result-card';
-      card.innerHTML = `<div class="result-head"><span class="result-code">${escapeHtml(d.code)}</span><span class="result-title">${escapeHtml(d.title)}</span><span class="result-meta">${escapeHtml(d.dates || d.provenance || '')}</span></div><div class="kwic"><span class="kwic-left">${escapeHtml(k.left)}</span><mark class="kwic-hit">${escapeHtml(k.word)}</mark><span class="kwic-right">${escapeHtml(k.right)}</span></div><div class="result-actions"><button data-open>Open text</button><button data-meta>Metadata</button></div>`;
-      card.querySelector('[data-open]').onclick = () => openReader(hit.doc, hit.char);
-      card.querySelector('[data-meta]').onclick = () => openMetadata(hit.doc);
-      els.results.append(card);
+      let group = groups.at(-1);
+      if (!group || group.doc !== hit.doc) {
+        group = { doc: hit.doc, hits: [] };
+        groups.push(group);
+      }
+      group.hits.push(hit);
+    }
+
+    for (const group of groups) {
+      const d = manifest.documents[group.doc];
+      const body = (await loadDoc(group.doc)).body;
+      const section = document.createElement('section');
+      section.className = 'result-group';
+      const meta = [d.dates, d.provenance, d.genre].filter(Boolean).join(' · ');
+      section.innerHTML = `
+        <header class="result-group-head">
+          <div class="source-identity">
+            <span class="result-code">${escapeHtml(d.code)}</span>
+            <div>
+              <h3 class="source-title">${escapeHtml(d.title)}</h3>
+              <p class="result-meta">${escapeHtml(meta)}</p>
+            </div>
+          </div>
+          <div class="source-actions">
+            <button type="button" data-open-source>Open text</button>
+            <button type="button" data-meta>Metadata</button>
+          </div>
+        </header>
+        <div class="kwic-list"></div>`;
+      section.querySelector('[data-open-source]').onclick = () => openReader(group.doc);
+      section.querySelector('[data-meta]').onclick = () => openMetadata(group.doc);
+      const list = section.querySelector('.kwic-list');
+
+      for (const hit of group.hits) {
+        const k = kwic(body, hit);
+        const row = document.createElement('div');
+        row.className = 'kwic-row';
+        row.innerHTML = `
+          <div class="kwic">
+            <span class="kwic-left">${escapeHtml(k.left)}</span>
+            <mark class="kwic-hit">${escapeHtml(k.word)}</mark>
+            <span class="kwic-right">${escapeHtml(k.right)}</span>
+          </div>
+          <button type="button" class="hit-open">Open in text</button>`;
+        row.querySelector('.hit-open').onclick = () => openReader(hit.doc, hit.char);
+        list.append(row);
+      }
+      els.results.append(section);
     }
     renderPagination(pages);
   }
@@ -419,8 +473,15 @@
     if (name === 'texts') renderTextBrowser();
   }
 
+  function setReaderTab(name) {
+    const map = { text: els.readerText, metadata: els.readerMeta, vocabulary: els.readerVocab };
+    Object.entries(map).forEach(([key, button]) => button.classList.toggle('is-active', key === name));
+  }
+
   async function openReader(id, char = null) {
     currentReader = id;
+    currentReaderChar = char;
+    setReaderTab('text');
     const d = manifest.documents[id], doc = await loadDoc(id);
     els.readerTitle.textContent = d.title;
     els.readerSubtitle.textContent = [d.code, d.dates, d.provenance].filter(Boolean).join(' · ');
@@ -430,7 +491,9 @@
     else {
       const len = spanAt(doc.body, char);
       els.readerContent.append(document.createTextNode(doc.body.slice(0, char)));
-      const mark = document.createElement('mark'); mark.textContent = doc.body.slice(char, char + len); els.readerContent.append(mark);
+      const mark = document.createElement('mark');
+      mark.textContent = doc.body.slice(char, char + len);
+      els.readerContent.append(mark);
       els.readerContent.append(document.createTextNode(doc.body.slice(char + len)));
       setTimeout(() => mark.scrollIntoView({ block: 'center' }), 60);
     }
@@ -439,9 +502,10 @@
 
   async function openMetadata(id) {
     currentReader = id;
+    setReaderTab('metadata');
     const d = manifest.documents[id];
     els.readerTitle.textContent = d.title;
-    els.readerSubtitle.textContent = d.code;
+    els.readerSubtitle.textContent = [d.code, d.dates, d.provenance].filter(Boolean).join(' · ');
     els.readerContent.className = 'reader-content metadata-view';
     const pairs = [['MCP code',d.code],['Title',d.title],['Edition',d.edition],['Manuscript',d.manuscript],['Dates',d.dates],['Provenance',d.provenance],['MCP word count',d.word_count_raw],['Reference scheme',d.reference_scheme],['Genre',d.genre],['Source file',d.source_file]];
     els.readerContent.innerHTML = `<dl>${pairs.filter(([,v])=>v).map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl><div class="metadata-raw">${escapeHtml(d.metadata_raw)}</div>`;
@@ -450,16 +514,25 @@
 
   async function openVocab(id) {
     currentReader = id;
+    setReaderTab('vocabulary');
     const d = manifest.documents[id];
     if (!vocabCache.has(id)) vocabCache.set(id, json(`${DATA}vocab/${d.file_id}.json`));
     const vocab = await vocabCache.get(id);
-    els.readerTitle.textContent = `${d.title} — vocabulary`;
-    els.readerSubtitle.textContent = `${vocab.length.toLocaleString()} indexed forms`;
+    els.readerTitle.textContent = d.title;
+    els.readerSubtitle.textContent = `${d.code} · ${vocab.length.toLocaleString()} indexed forms`;
     els.readerContent.className = 'reader-content';
-    const table = document.createElement('table'); table.className = 'vocab-table';
+    const table = document.createElement('table');
+    table.className = 'vocab-table';
     const tbody = document.createElement('tbody');
-    for (const [term,count] of vocab) { const tr=document.createElement('tr'); const a=document.createElement('td'); const b=document.createElement('td'); a.textContent=term;b.textContent=count.toLocaleString();tr.append(a,b);tbody.append(tr); }
-    table.append(tbody); els.readerContent.replaceChildren(table);
+    for (const [term,count] of vocab) {
+      const tr=document.createElement('tr');
+      const a=document.createElement('td');
+      const b=document.createElement('td');
+      a.textContent=term; b.textContent=count.toLocaleString();
+      tr.append(a,b); tbody.append(tr);
+    }
+    table.append(tbody);
+    els.readerContent.replaceChildren(table);
     if (!els.readerDialog.open) els.readerDialog.showModal();
   }
 
@@ -467,11 +540,19 @@
     const q = fold(els.textBrowserSearch.value);
     const docs = manifest.documents.filter(d => !q || fold([d.code,d.title,d.dates,d.provenance,d.genre].join(' ')).includes(q));
     els.textBrowser.innerHTML = '';
+    els.textBrowserCount.textContent = `${docs.length.toLocaleString()} of ${manifest.documents.length.toLocaleString()} texts`;
     for (const d of docs) {
-      const card = document.createElement('article'); card.className = 'text-card';
-      card.innerHTML = `<div class="text-card-top"><span class="result-code">${escapeHtml(d.code)}</span><span class="result-meta">${d.indexed_tokens.toLocaleString()} tokens</span></div><h2>${escapeHtml(d.title)}</h2><p>${escapeHtml(d.dates || 'Date not specified')}</p><p>${escapeHtml(d.provenance || 'Provenance not specified')}</p><button>Open text →</button>`;
-      card.querySelector('button').onclick = () => openReader(d.id);
-      els.textBrowser.append(card);
+      const row = document.createElement('article');
+      row.className = 'text-row';
+      const meta = [d.dates || 'Date not specified', d.provenance || 'Provenance not specified', d.genre].filter(Boolean).join(' · ');
+      row.innerHTML = `
+        <div class="text-row-code">${escapeHtml(d.code)}</div>
+        <div><h2>${escapeHtml(d.title)}</h2></div>
+        <div class="text-row-meta">${escapeHtml(meta)}</div>
+        <div class="text-row-count">${d.indexed_tokens.toLocaleString()} tokens</div>
+        <button type="button">Open</button>`;
+      row.querySelector('button').onclick = () => openReader(d.id);
+      els.textBrowser.append(row);
     }
   }
 
@@ -479,7 +560,7 @@
     els.textFilter.innerHTML = manifest.documents.map(d => `<option value="${d.id}">${escapeHtml(d.code)} — ${escapeHtml(d.title)}</option>`).join('');
     const genres = [...new Set(manifest.documents.map(d => d.genre))].sort();
     els.genreFilter.insertAdjacentHTML('beforeend', genres.map(g => `<option>${escapeHtml(g)}</option>`).join(''));
-    els.corpusSummary.textContent = `${manifest.document_count} archived texts · ${manifest.indexed_tokens.toLocaleString()} indexed tokens · ${manifest.declared_words.toLocaleString()} words reported by MCP metadata.`;
+    els.corpusSummary.textContent = `${manifest.document_count.toLocaleString()} texts · ${manifest.indexed_tokens.toLocaleString()} indexed tokens`;
   }
 
   function updateModeHelp() {
@@ -518,7 +599,10 @@
       const hasQuery = restoreUrl();
       renderTextBrowser();
       if (hasQuery) await runSearch(false);
-      else els.searchStatus.textContent = 'Ready. Search the full corpus or choose filters above.';
+      else {
+        els.resultHeading.textContent = 'Search the corpus';
+        els.searchStatus.textContent = '';
+      }
     } catch (e) {
       els.corpusSummary.textContent = 'The generated corpus index could not be loaded.';
       els.searchStatus.textContent = e.message || String(e); els.searchStatus.className = 'status-line error';
@@ -526,6 +610,16 @@
   }
 
   els.searchForm.addEventListener('submit', e => { e.preventDefault(); runSearch(); });
+  document.querySelectorAll('[data-example]').forEach(button => button.addEventListener('click', async () => {
+    const mode = button.dataset.exampleMode;
+    const radio = document.querySelector(`input[name="mode"][value="${CSS.escape(mode)}"]`);
+    if (radio) radio.checked = true;
+    els.query.value = button.dataset.example;
+    updateModeHelp();
+    showView('search');
+    await runSearch();
+  }));
+
   document.querySelectorAll('input[name="mode"]').forEach(x => x.addEventListener('change', updateModeHelp));
   document.querySelectorAll('.nav-button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
   els.textBrowserSearch.addEventListener('input', renderTextBrowser);
@@ -533,6 +627,7 @@
   els.provenanceFilter.addEventListener('input', filterCount);
   els.clearFilters.addEventListener('click', () => { [...els.textFilter.options].forEach(o=>o.selected=false); els.genreFilter.value='';els.centuryFilter.value='';els.provenanceFilter.value='';els.sortFilter.value='corpus';els.looseMatch.checked=false;filterCount(); });
   els.readerClose.addEventListener('click', () => els.readerDialog.close());
+  els.readerText.addEventListener('click', () => currentReader != null && openReader(currentReader, currentReaderChar));
   els.readerMeta.addEventListener('click', () => currentReader != null && openMetadata(currentReader));
   els.readerVocab.addEventListener('click', () => currentReader != null && openVocab(currentReader));
   els.readerDialog.addEventListener('click', e => { if (e.target === els.readerDialog) els.readerDialog.close(); });
