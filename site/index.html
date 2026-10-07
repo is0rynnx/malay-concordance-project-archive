@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Search and browse the archived Malay Concordance Project corpus.">
+  <meta name="theme-color" content="#f4f1e9">
+  <title>Malay Concordance</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="Malay Concordance home">
+      <span class="brand-mark">MCP</span>
+      <span><strong>Malay Concordance</strong><small>MCP Archive</small></span>
+    </a>
+    <nav class="topnav" aria-label="Primary">
+      <button class="nav-button is-active" data-view="search">Search</button>
+      <button class="nav-button" data-view="texts">Texts</button>
+      <button class="nav-button" data-view="about">About</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="searchView" class="view is-active">
+      <div class="search-shell">
+        <div class="search-intro">
+          <p class="eyebrow">Historical Malay corpus</p>
+          <h1>Search the archive.</h1>
+          <p id="corpusSummary" class="lede">Loading corpus index…</p>
+        </div>
+
+        <form id="searchForm" class="search-panel">
+          <label class="search-box">
+            <span class="sr-only">Search query</span>
+            <input id="query" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search a word, phrase, or pattern…">
+            <button type="submit">Search</button>
+          </label>
+
+          <div class="mode-row" role="group" aria-label="Search mode">
+            <label><input type="radio" name="mode" value="word" checked><span>Word</span></label>
+            <label><input type="radio" name="mode" value="phrase"><span>Phrase</span></label>
+            <label><input type="radio" name="mode" value="wildcard"><span>Wildcard</span></label>
+            <label><input type="radio" name="mode" value="regex"><span>Regex</span></label>
+            <label><input type="radio" name="mode" value="near"><span>Near</span></label>
+            <label><input type="radio" name="mode" value="morph"><span>Word family</span></label>
+          </div>
+
+          <details class="filters" id="filterDetails">
+            <summary>Filters and options <span id="filterCount"></span></summary>
+            <div class="filter-grid">
+              <label>Texts
+                <select id="textFilter" multiple size="7" aria-label="Filter by texts"></select>
+                <small>Ctrl/Cmd-click to select several.</small>
+              </label>
+              <label>Genre
+                <select id="genreFilter"><option value="">All genres</option></select>
+              </label>
+              <label>Century
+                <select id="centuryFilter">
+                  <option value="">Any date</option>
+                  <option value="1300">14th century</option>
+                  <option value="1400">15th century</option>
+                  <option value="1500">16th century</option>
+                  <option value="1600">17th century</option>
+                  <option value="1700">18th century</option>
+                  <option value="1800">19th century</option>
+                  <option value="1900">20th century</option>
+                </select>
+              </label>
+              <label>Provenance contains
+                <input id="provenanceFilter" type="text" placeholder="e.g. Aceh, Batavia, Johor">
+              </label>
+              <label>Sort
+                <select id="sortFilter">
+                  <option value="corpus">Corpus order</option>
+                  <option value="text">Text title</option>
+                  <option value="date">Earliest date</option>
+                </select>
+              </label>
+              <label class="checkline"><input id="looseMatch" type="checkbox"> <span>Loose diacritics / punctuation matching</span></label>
+            </div>
+            <div class="filter-actions">
+              <button type="button" class="secondary" id="clearFilters">Clear filters</button>
+            </div>
+          </details>
+
+          <div id="modeHelp" class="mode-help">Multiple words are treated as AND. Prefix a word with <code>-</code> to exclude it.</div>
+        </form>
+      </div>
+
+      <section class="results-shell" aria-live="polite">
+        <div id="searchStatus" class="status-line"></div>
+        <div id="resultStats" class="result-stats"></div>
+        <div class="result-tools">
+          <button id="exportCsv" class="secondary" type="button" disabled>Export CSV</button>
+          <details id="distributionDetails" class="distribution-details">
+            <summary>Distribution by text</summary>
+            <div id="distribution" class="distribution"></div>
+          </details>
+        </div>
+        <div id="results" class="results"></div>
+        <div id="pagination" class="pagination"></div>
+      </section>
+    </section>
+
+    <section id="textsView" class="view content-view">
+      <div class="section-head">
+        <div><p class="eyebrow">Corpus browser</p><h1>Texts</h1></div>
+        <input id="textBrowserSearch" type="search" placeholder="Filter by title, code, date, provenance…" aria-label="Filter corpus texts">
+      </div>
+      <div id="textBrowser" class="text-grid"></div>
+    </section>
+
+    <section id="aboutView" class="view content-view prose">
+      <p class="eyebrow">About this archive</p>
+      <h1>Malay Concordance</h1>
+      <p>This site provides a static, searchable interface to the archived Malay Concordance Project text collection held in this GitHub repository. The original transcriptions remain unchanged. Search indexes, vocabulary lists, filters and concordance displays are generated from those source files at deployment time.</p>
+      <h2>Search modes</h2>
+      <dl>
+        <dt>Word</dt><dd>Case-insensitive token search. Multiple words require all terms to occur in the same text. Prefix a term with <code>-</code> to exclude texts containing it.</dd>
+        <dt>Phrase</dt><dd>Finds adjacent indexed word forms in the specified order.</dd>
+        <dt>Wildcard</dt><dd>Use <code>*</code> for any sequence and <code>?</code> for a single character, matched against the corpus vocabulary.</dd>
+        <dt>Regex</dt><dd>JavaScript regular expression matched against vocabulary forms. Patterns are capped to protect the browser from pathological queries.</dd>
+        <dt>Near</dt><dd>Use <code>word1 ~5 word2</code> or <code>word1 NEAR/5 word2</code> to find forms within a word-distance window.</dd>
+        <dt>Word family</dt><dd>Heuristic Malay prefix/suffix expansion around the supplied root. Use it for discovery, not as a claim of morphological analysis.</dd>
+      </dl>
+      <h2>Source fidelity</h2>
+      <p>The display text is the archived MCP transcription. Editorial brackets, symbols, spelling and notes are preserved. Normalization is used only for indexing and retrieval.</p>
+      <p><a href="https://github.com/is0rynnx/malay-concordance-project-archive">View the source archive on GitHub</a></p>
+    </section>
+  </main>
+
+  <dialog id="readerDialog" class="reader-dialog">
+    <div class="reader-toolbar">
+      <div><strong id="readerTitle"></strong><small id="readerSubtitle"></small></div>
+      <div class="reader-actions">
+        <button id="readerMeta" class="secondary">Metadata</button>
+        <button id="readerVocab" class="secondary">Vocabulary</button>
+        <button id="readerClose" aria-label="Close reader">Close</button>
+      </div>
+    </div>
+    <div id="readerContent" class="reader-content"></div>
+  </dialog>
+
+  <noscript>This concordance requires JavaScript.</noscript>
+  <script src="app.js" defer></script>
+</body>
+</html>
