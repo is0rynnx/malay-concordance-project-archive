@@ -1,0 +1,4 @@
+# GitHub Actions generates the published site from site/ and texts/.
+/public/
+/__pycache__/
+*.py[cod]

@@ -161,10 +161,20 @@ def main() -> None:
         info["file_id"] = file_id
         vocab = Counter()
         token_count = 0
+        # JavaScript positions are UTF-16 code units, not Python code points.
+        # Convert offsets while scanning once so reader links remain exact even
+        # when a transcription contains characters outside the BMP.
+        scanned = 0
+        astral_before = 0
         for term, pos, char in tokenize(body):
+            while scanned < char:
+                if ord(body[scanned]) > 0xFFFF:
+                    astral_before += 1
+                scanned += 1
+            js_char = char + astral_before
             arr = postings[term][doc_id]
             arr.append(pos)
-            arr.append(char)
+            arr.append(js_char)
             vocab[term] += 1
             lexicon[term] += 1
             token_count += 1

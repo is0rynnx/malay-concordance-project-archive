@@ -1,815 +1,690 @@
 (() => {
   'use strict';
-
-  const DEFAULT_PAGE_SIZE = 50;
-  let pageSize = DEFAULT_PAGE_SIZE;
-  let requestedPage = 1;
-  const MAX_TERMS = 1500;
-  const MAX_RESULTS = 25000;
   const DATA = 'data/';
-  const tokenRe = /[\p{L}\p{M}\p{N}]+(?:[’'`´-][\p{L}\p{M}\p{N}]+)*/gu;
-  const els = Object.fromEntries([...document.querySelectorAll('[id]')].map(el => [el.id, el]));
-  const shardCache = new Map();
-  const docCache = new Map();
-  const vocabCache = new Map();
-  let manifest = null;
-  let lexicon = null;
-  let foldMap = null;
-  let searchResult = null;
-  let currentPage = 1;
-  let currentReader = null;
-  let currentReaderChar = null;
+  const PAGE_DEFAULT = 50;
+  const MAX_EXPANSION = 1500;
+  const MAX_RESULTS = 120000;
+  const TOKEN_RE = /[\p{L}\p{M}\p{N}]+(?:[’'`´-][\p{L}\p{M}\p{N}]+)*/gu;
+  const els = Object.fromEntries([...document.querySelectorAll('[id]')].map(e => [e.id, e]));
+  const postingCache = new Map(), textCache = new Map(), vocabCache = new Map();
+  let manifest = null, lexicon = null, foldMap = null;
+  let searchResult = null, lastSearchUrl = location.pathname, activeSearch = 0;
+  let currentPage = 1, currentView = 'search';
+  let currentReader = null, readerDoc = null, readerPosition = null, readerTab = 'text';
+  let readerFindMatches = [], readerFindIndex = 0, vocabPage = 1;
+  let allDistribution = false;
 
-  const modeHelp = {
-    word: 'Find a word form. Add more words to require them in the same text; prefix a word with - to exclude it.',
-    phrase: 'Find adjacent words in the order entered.',
-    wildcard: 'Use * for any sequence of characters and ? for one character.',
-    regex: 'Match a JavaScript regular expression against indexed word forms.',
-    near: 'Use word1 ~5 word2 or word1 NEAR/5 word2.',
-    morph: 'Expand one root through common Malay affix patterns.'
+  const modeHints = {
+    word: 'Match a word form. Multiple words must appear in the same text.',
+    phrase: 'Match adjacent words in the specified order.',
+    wildcard: 'Use * for any number of characters and ? for one.',
+    regex: 'Match a JavaScript regular expression against word forms.',
+    near: 'Enter two words, such as anak ~5 raja.',
+    morph: 'Find likely affixed forms of a Malay root.'
   };
+  const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const norm = s => String(s ?? '').normalize('NFKC').toLowerCase().replace(/[’´]/g, "'");
+  const fold = s => norm(s).normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]/gu, '');
+  const tokensOf = s => [...norm(s).matchAll(TOKEN_RE)].map(m => m[0]);
+  const nice = n => Number(n || 0).toLocaleString('en-US');
+  const numeric = (n, otherwise = 1) => Number.isFinite(+n) ? +n : otherwise;
+  const setStatus = (message, error=false) => { els.searchStatus.textContent = message; els.searchStatus.className = error ? 'status-line error' : 'status-line'; };
+  const routeParams = () => new URLSearchParams(location.search);
 
-  function norm(s) {
-    return (s || '').normalize('NFKC').toLocaleLowerCase().replaceAll('’', "'").replaceAll('´', "'");
+  async function json(path) {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`Cannot load corpus data (${response.status}).`);
+    return response.json();
   }
-
-  function fold(s) {
-    return norm(s).normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]/gu, '');
-  }
-
-  function queryTokens(s) {
-    return [...norm(s).matchAll(tokenRe)].map(m => m[0]);
-  }
-
   function fnv1a(s) {
     let h = 0x811c9dc5;
-    for (const b of new TextEncoder().encode(s)) {
-      h ^= b;
-      h = Math.imul(h, 0x01000193) >>> 0;
-    }
+    for (const byte of new TextEncoder().encode(s)) h = Math.imul((h ^ byte), 0x01000193) >>> 0;
     return h >>> 0;
   }
-
-  function bucket(term) {
-    return (fnv1a(term) % 64).toString(16).padStart(2, '0');
+  function postingBucket(term) { return (fnv1a(term) % 64).toString(16).padStart(2, '0'); }
+  function shardFor(term) {
+    const key = postingBucket(term);
+    if (!postingCache.has(key)) postingCache.set(key, json(`${DATA}postings/${key}.json`).catch(e => { postingCache.delete(key); throw e; }));
+    return postingCache.get(key);
   }
-
-  async function json(url) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`Failed to load ${url} (${r.status})`);
-    return r.json();
+  function loadText(id) {
+    const d = manifest.documents[id];
+    if (!d) return Promise.reject(new Error('Text not found.'));
+    if (!textCache.has(id)) textCache.set(id, json(`${DATA}texts/${d.file_id}.json`).catch(e => { textCache.delete(id); throw e; }));
+    return textCache.get(id);
   }
-
-  async function loadShard(term) {
-    const b = bucket(term);
-    if (!shardCache.has(b)) shardCache.set(b, json(`${DATA}postings/${b}.json`));
-    return shardCache.get(b);
+  function loadVocabulary(id) {
+    const d = manifest.documents[id];
+    if (!vocabCache.has(id)) vocabCache.set(id, json(`${DATA}vocab/${d.file_id}.json`).catch(e => { vocabCache.delete(id); throw e; }));
+    return vocabCache.get(id);
   }
-
-  function decodePosting(term, row) {
-    const doc = row[0], packed = row[1];
-    const hits = [];
-    let t = 0, c = 0;
-    for (let i = 0; i < packed.length; i += 2) {
-      t += packed[i]; c += packed[i + 1];
-      hits.push({ doc, token: t, char: c, term });
-    }
-    return hits;
-  }
-
-  async function postingsForTerms(terms) {
-    const out = new Map();
-    await Promise.all(terms.map(async term => {
-      const shard = await loadShard(term);
-      for (const row of (shard[term] || [])) {
-        const arr = out.get(row[0]) || [];
-        arr.push(...decodePosting(term, row));
-        out.set(row[0], arr);
-      }
-    }));
-    for (const arr of out.values()) arr.sort((a, b) => a.token - b.token || a.char - b.char);
-    return out;
-  }
-
-  async function ensureLexicon() {
+  async function getLexicon() {
     if (!lexicon) lexicon = await json(`${DATA}lexicon.json`);
     return lexicon;
   }
-
   async function candidatesExact(term, loose) {
     term = norm(term);
     if (!loose) return [term];
-    await ensureLexicon();
+    const list = await getLexicon();
     if (!foldMap) {
       foldMap = new Map();
-      for (const [t] of lexicon) {
-        const f = fold(t);
-        if (!foldMap.has(f)) foldMap.set(f, []);
-        foldMap.get(f).push(t);
+      for (const [form] of list) {
+        const key = fold(form);
+        if (!foldMap.has(key)) foldMap.set(key, []);
+        foldMap.get(key).push(form);
       }
     }
     return foldMap.get(fold(term)) || [term];
   }
-
-  function docAllowed(docId) {
-    const d = manifest.documents[docId];
-    const selected = els.textFilter.value === '' ? null : Number(els.textFilter.value);
-    if (selected !== null && selected !== docId) return false;
-    if (els.centuryFilter.value) {
-      const c = +els.centuryFilter.value;
-      if (!d.year_min || d.year_min < c || d.year_min >= c + 100) return false;
+  function decode(row, term) {
+    const [doc, pairs] = row;
+    const result = [];
+    let token = 0, char = 0;
+    for (let i=0; i<pairs.length; i+=2) {
+      token += pairs[i]; char += pairs[i+1];
+      result.push({doc, token, char, term});
     }
-    const p = norm(els.provenanceFilter.value.trim());
-    if (p && !norm(d.provenance).includes(p)) return false;
+    return result;
+  }
+  async function postingsFor(terms) {
+    const map = new Map();
+    await Promise.all([...new Set(terms)].map(async term => {
+      const shard = await shardFor(term);
+      for (const row of shard[term] || []) {
+        if (!map.has(row[0])) map.set(row[0], []);
+        map.get(row[0]).push(...decode(row, term));
+      }
+    }));
+    for (const hits of map.values()) hits.sort((a,b) => a.token-b.token || a.char-b.char);
+    return map;
+  }
+  function permittedDoc(id) {
+    const d = manifest.documents[id];
+    const selected = els.textFilter.value;
+    if (selected !== '' && Number(selected) !== id) return false;
+    if (els.centuryFilter.value) {
+      const start = +els.centuryFilter.value;
+      if (!d.year_min || d.year_min < start || d.year_min >= start+100) return false;
+    }
+    const origin = norm(els.provenanceFilter.value.trim());
+    if (origin && !norm(d.provenance).includes(origin)) return false;
     return true;
   }
-
-  function applyDocFilters(hits) {
-    return hits.filter(h => docAllowed(h.doc));
+  function finalise(rawHits, expanded=1, truncatedTerms=false) {
+    const filtered = rawHits.filter(h => permittedDoc(h.doc));
+    const perDoc = new Map();
+    for (const h of filtered) perDoc.set(h.doc, (perDoc.get(h.doc)||0)+1);
+    const sort = els.sortFilter.value;
+    filtered.sort((a,b) => {
+      if (sort === 'text') return manifest.documents[a.doc].title.localeCompare(manifest.documents[b.doc].title) || a.token-b.token;
+      if (sort === 'date') return (manifest.documents[a.doc].year_min||9999)-(manifest.documents[b.doc].year_min||9999) || a.doc-b.doc || a.token-b.token;
+      if (sort === 'count') return (perDoc.get(b.doc)||0)-(perDoc.get(a.doc)||0) || a.doc-b.doc || a.token-b.token;
+      return a.doc-b.doc || a.token-b.token;
+    });
+    const capped = filtered.length > MAX_RESULTS;
+    return { hits: capped ? filtered.slice(0, MAX_RESULTS) : filtered,
+      total: filtered.length, expanded, truncated: truncatedTerms || capped,
+      capped, truncatedTerms, distribution:[...perDoc.entries()] };
   }
-
-  async function exactSearch(q) {
-    const rawParts = q.trim().split(/\s+/).filter(Boolean);
-    const negative = rawParts.filter(x => x.startsWith('-') && x.length > 1).map(x => x.slice(1));
-    const positive = rawParts.filter(x => !x.startsWith('-'));
-    const posTokens = positive.flatMap(queryTokens);
-    const negTokens = negative.flatMap(queryTokens);
-    if (!posTokens.length) throw new Error('Enter at least one search word.');
-    const loose = els.looseMatch.checked;
-    const maps = [];
-    for (const t of posTokens) maps.push(await postingsForTerms(await candidatesExact(t, loose)));
-    let allowedDocs = new Set(maps[0].keys());
-    for (const m of maps.slice(1)) allowedDocs = new Set([...allowedDocs].filter(d => m.has(d)));
-    for (const t of negTokens) {
-      const m = await postingsForTerms(await candidatesExact(t, loose));
-      for (const d of m.keys()) allowedDocs.delete(d);
+  async function wordSearch(query) {
+    const parts = query.trim().split(/\s+/).filter(Boolean);
+    const include = parts.filter(p => !p.startsWith('-')).flatMap(tokensOf);
+    const exclude = parts.filter(p => p.startsWith('-') && p.length>1).flatMap(p=>tokensOf(p.slice(1)));
+    if (!include.length) throw new Error('Enter at least one word.');
+    const maps = await Promise.all(include.map(async t => postingsFor(await candidatesExact(t, els.looseMatch.checked))));
+    const docs = new Set(maps[0].keys());
+    for (const map of maps.slice(1)) for (const id of [...docs]) if (!map.has(id)) docs.delete(id);
+    for (const term of exclude) {
+      const map = await postingsFor(await candidatesExact(term, els.looseMatch.checked));
+      for (const id of map.keys()) docs.delete(id);
     }
-    let hits = [];
-    for (const d of allowedDocs) hits.push(...maps[0].get(d));
-    return finalize(hits, posTokens.length, false);
+    const hits = [...docs].flatMap(d => maps[0].get(d) || []);
+    return finalise(hits, include.length);
   }
-
-  async function phraseSearch(q) {
-    const toks = queryTokens(q);
-    if (!toks.length) throw new Error('Enter a phrase.');
-    const loose = els.looseMatch.checked;
-    const maps = [];
-    for (const t of toks) maps.push(await postingsForTerms(await candidatesExact(t, loose)));
-    let docs = new Set(maps[0].keys());
-    for (const m of maps.slice(1)) docs = new Set([...docs].filter(d => m.has(d)));
+  async function phraseSearch(query) {
+    const terms = tokensOf(query);
+    if (!terms.length) throw new Error('Enter a phrase.');
+    const maps = await Promise.all(terms.map(async t => postingsFor(await candidatesExact(t, els.looseMatch.checked))));
+    const docs = new Set(maps[0].keys());
+    for (const map of maps.slice(1)) for (const d of [...docs]) if (!map.has(d)) docs.delete(d);
     const hits = [];
     for (const d of docs) {
-      const positionSets = maps.map(m => new Set(m.get(d).map(h => h.token)));
-      for (const h of maps[0].get(d)) {
-        let ok = true;
-        for (let i = 1; i < positionSets.length; i++) if (!positionSets[i].has(h.token + i)) { ok = false; break; }
-        if (ok) hits.push({ ...h, term: q.trim(), phraseLength: toks.length });
+      const sets = maps.slice(1).map(m => new Set((m.get(d)||[]).map(h=>h.token)));
+      for (const hit of maps[0].get(d)) {
+        if (sets.every((set,i)=>set.has(hit.token+i+1))) hits.push({...hit, phraseLength:terms.length});
       }
     }
-    return finalize(hits, toks.length, false);
+    return finalise(hits, terms.length);
   }
-
-  function wildcardRegex(pattern) {
-    const escaped = norm(pattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replaceAll('*', '.*').replaceAll('?', '.');
-    return new RegExp(`^${escaped}$`, 'u');
+  function wildcardRegex(query) {
+    const s = norm(query).replace(/[.+^${}()|[\]\\]/g, '\\$&').replaceAll('*', '.*').replaceAll('?', '.');
+    return new RegExp(`^${s}$`, 'u');
   }
-
-  async function vocabularyPatternSearch(q, kind) {
-    await ensureLexicon();
+  async function patternSearch(query, mode) {
+    if (query.length > 160) throw new Error('Search pattern is too long (maximum 160 characters).');
     let re;
-    if (kind === 'wildcard') re = wildcardRegex(q.trim());
-    else {
-      try { re = new RegExp(q.trim(), 'u'); } catch (e) { throw new Error(`Invalid regular expression: ${e.message}`); }
+    try { re = mode==='wildcard' ? wildcardRegex(query.trim()) : new RegExp(query.trim(), 'u'); }
+    catch(e) { throw new Error(`Invalid pattern: ${e.message}`); }
+    const dictionary = await getLexicon();
+    const matches = [];
+    for (const [term] of dictionary) if (re.test(term)) {
+      matches.push(term);
+      if (matches.length > MAX_EXPANSION) break;
     }
-    let terms = lexicon.filter(([t]) => re.test(t)).map(([t]) => t);
-    const termTotal = terms.length;
-    if (terms.length > MAX_TERMS) terms = terms.slice(0, MAX_TERMS);
-    const map = await postingsForTerms(terms);
-    let hits = [...map.values()].flat();
-    return finalize(hits, termTotal, termTotal > MAX_TERMS, terms);
+    const truncated = matches.length>MAX_EXPANSION;
+    const terms = truncated ? matches.slice(0,MAX_EXPANSION) : matches;
+    const map = await postingsFor(terms);
+    return finalise([...map.values()].flat(), matches.length, truncated);
   }
-
-  function morphologyPatterns(root) {
+  function morphologyRegex(root) {
     root = norm(root);
-    const forms = new Set([root, `ber${root}`, `be${root}`, `ter${root}`, `te${root}`, `di${root}`, `ke${root}`, `se${root}`, `per${root}`, `pe${root}`]);
-    const first = root[0] || '';
-    const rest = root.slice(1);
-    if ('aiueoghq'.includes(first)) { forms.add(`meng${root}`); forms.add(`peng${root}`); }
-    else if (first === 'k') { forms.add(`meng${rest}`); forms.add(`peng${rest}`); }
-    else if (first === 'p') { forms.add(`mem${rest}`); forms.add(`pem${rest}`); }
-    else if (first === 't') { forms.add(`men${rest}`); forms.add(`pen${rest}`); }
-    else if (first === 's') { forms.add(`meny${rest}`); forms.add(`peny${rest}`); }
-    else if ('bvf'.includes(first)) { forms.add(`mem${root}`); forms.add(`pem${root}`); }
-    else if ('cdjz'.includes(first)) { forms.add(`men${root}`); forms.add(`pen${root}`); }
-    else if (root.length <= 3) { forms.add(`menge${root}`); forms.add(`penge${root}`); }
-    else { forms.add(`me${root}`); forms.add(`pe${root}`); }
-    const escaped = [...forms].map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const base = new Set([root]);
+    for (const p of ['ber','be','ter','te','di','ke','se','per','pe','memper','diper','keter','keber']) base.add(p+root);
+    const initial = root[0] || '', rest = root.slice(1);
+    if ('aiueoghq'.includes(initial)) for (const p of ['meng','peng']) base.add(p+root);
+    else if (initial === 'k') for (const p of ['meng','peng']) base.add(p+rest);
+    else if (initial === 'p') for (const p of ['mem','pem']) base.add(p+rest);
+    else if (initial === 't') for (const p of ['men','pen']) base.add(p+rest);
+    else if (initial === 's') for (const p of ['meny','peny']) base.add(p+rest);
+    else if ('bvf'.includes(initial)) for (const p of ['mem','pem']) base.add(p+root);
+    else if ('cdjz'.includes(initial)) for (const p of ['men','pen']) base.add(p+root);
+    else if (root.length<=3) for (const p of ['menge','penge']) base.add(p+root);
+    else for (const p of ['me','pe']) base.add(p+root);
+    const escaped = [...base].map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
     return new RegExp(`^(?:${escaped.join('|')})(?:kan|i|an|nya|lah|kah|pun)?$`, 'u');
   }
-
-  async function morphologySearch(q) {
-    const toks = queryTokens(q);
-    if (toks.length !== 1) throw new Error('Word family search expects one root form.');
-    await ensureLexicon();
-    const re = morphologyPatterns(toks[0]);
-    let terms = lexicon.filter(([t]) => re.test(t)).map(([t]) => t);
-    const totalTerms = terms.length;
-    if (terms.length > MAX_TERMS) terms = terms.slice(0, MAX_TERMS);
-    const map = await postingsForTerms(terms);
-    return finalize([...map.values()].flat(), totalTerms, totalTerms > MAX_TERMS, terms);
+  async function morphSearch(query) {
+    const toks = tokensOf(query);
+    if (toks.length!==1) throw new Error('Word family search requires one root.');
+    const pattern = morphologyRegex(toks[0]);
+    const dictionary = await getLexicon();
+    const terms = [];
+    for (const [word] of dictionary) if (pattern.test(word)) terms.push(word);
+    const truncated = terms.length>MAX_EXPANSION;
+    const map = await postingsFor(terms.slice(0,MAX_EXPANSION));
+    return finalise([...map.values()].flat(),terms.length,truncated);
   }
-
-  function parseNear(q) {
-    let m = q.match(/^\s*(.+?)\s+(?:NEAR\/(\d+)|~\s*(\d+))\s+(.+?)\s*$/i);
-    if (!m) m = q.match(/^\s*(\S+)\s*~\s*(\d+)\s*(\S+)\s*$/);
-    if (!m) throw new Error('Near syntax: word1 ~5 word2 or word1 NEAR/5 word2');
-    if (m.length === 5) return [m[1], +(m[2] || m[3]), m[4]];
-    return [m[1], +m[2], m[3]];
-  }
-
-  async function nearSearch(q) {
-    const [left, distance, right] = parseNear(q);
-    if (distance < 1 || distance > 100) throw new Error('Near distance must be between 1 and 100 words.');
-    const loose = els.looseMatch.checked;
-    const a = await postingsForTerms(await candidatesExact(queryTokens(left)[0] || left, loose));
-    const b = await postingsForTerms(await candidatesExact(queryTokens(right)[0] || right, loose));
+  async function nearSearch(query) {
+    const m = query.match(/^\s*(\S+)\s*(?:~\s*(\d+)|NEAR\/(\d+))\s*(\S+)\s*$/i);
+    if (!m) throw new Error('Enter proximity as word1 ~5 word2.');
+    const wordsA = tokensOf(m[1]), wordsB = tokensOf(m[4]);
+    const n = Number(m[2]||m[3]);
+    if (wordsA.length!==1 || wordsB.length!==1 || n<1 || n>100) throw new Error('Proximity must contain two words and a distance from 1 to 100.');
+    const [left,right] = await Promise.all([
+      postingsFor(await candidatesExact(wordsA[0],els.looseMatch.checked)),
+      postingsFor(await candidatesExact(wordsB[0],els.looseMatch.checked))
+    ]);
     const hits = [];
-    for (const [doc, ah] of a) {
-      if (!b.has(doc)) continue;
-      const bp = b.get(doc).map(h => h.token);
+    for (const [id, first] of left) {
+      const second = right.get(id); if (!second) continue;
       let j = 0;
-      for (const h of ah) {
-        while (j < bp.length && bp[j] < h.token - distance) j++;
-        if (j < bp.length && Math.abs(bp[j] - h.token) <= distance) hits.push({ ...h, near: `${left} ~${distance} ${right}` });
+      for (const h of first) {
+        while (j<second.length && second[j].token<h.token-n) j++;
+        let picked = null;
+        for (let k=j; k<second.length && second[k].token<=h.token+n; k++) {
+          if (second[k].token===h.token) continue;
+          if (!picked || Math.abs(second[k].token-h.token)<Math.abs(picked.token-h.token)) picked=second[k];
+        }
+        if (picked) hits.push({...h, nearChar:picked.char, nearTerm:picked.term});
       }
     }
-    return finalize(hits, 2, false);
+    return finalise(hits,2);
   }
-
-  function finalize(hits, candidateCount = 1, termTruncated = false, terms = null) {
-    hits = applyDocFilters(hits);
-    const total = hits.length;
-    const distribution = new Map();
-    for (const h of hits) distribution.set(h.doc, (distribution.get(h.doc) || 0) + 1);
-    hits.sort((a, b) => {
-      const sort = els.sortFilter.value;
-      if (sort === 'text') return manifest.documents[a.doc].title.localeCompare(manifest.documents[b.doc].title) || a.char - b.char;
-      if (sort === 'date') return (manifest.documents[a.doc].year_min || 9999) - (manifest.documents[b.doc].year_min || 9999) || a.char - b.char;
-      return a.doc - b.doc || a.char - b.char;
-    });
-    const truncated = total > MAX_RESULTS || termTruncated;
-    if (hits.length > MAX_RESULTS) hits = hits.slice(0, MAX_RESULTS);
-    return { hits, total, candidateCount, truncated, terms, distribution: [...distribution.entries()] };
-  }
-
-  async function runSearch(pushUrl = true, page = 1) {
+  async function runSearch(updateUrl=true) {
     const q = els.query.value.trim();
-    if (!q) return;
+    if (!q) { els.query.focus(); return; }
     const mode = els.modeSelect.value;
-    els.searchStatus.textContent = 'Searching…';
-    els.searchStatus.className = 'status-line';
-    els.results.innerHTML = '';
-    els.resultStats.innerHTML = '';
-    els.pagination.innerHTML = '';
-    els.distribution.innerHTML = '<p class="sidebar-empty">Searching…</p>';
-    els.exportCsv.disabled = true;
-    currentPage = Math.max(1, Number(page) || 1);
+    const ticket=++activeSearch;
+    setStatus('Searching…');
+    els.resultHeading.textContent='Search results';
+    els.results.innerHTML='';els.pagination.innerHTML='';els.resultStats.textContent='';
+    els.exportCsv.disabled=true;els.copySearchLink.disabled=true;
+    if (updateUrl) {
+      currentPage=1;els.formFilter.value='';
+      syncSearchUrl(true);
+    }
     try {
       const start = performance.now();
-      if (mode === 'word') searchResult = await exactSearch(q);
-      else if (mode === 'phrase') searchResult = await phraseSearch(q);
-      else if (mode === 'wildcard' || mode === 'regex') searchResult = await vocabularyPatternSearch(q, mode);
-      else if (mode === 'near') searchResult = await nearSearch(q);
-      else searchResult = await morphologySearch(q);
-      searchResult.query = q;
-      searchResult.mode = mode;
-      searchResult.elapsed = performance.now() - start;
-      if (pushUrl) syncUrl(false);
-      await renderResults();
-    } catch (e) {
-      els.resultHeading.textContent = 'Search error';
-      els.searchStatus.textContent = e.message || String(e);
-      els.searchStatus.className = 'status-line error';
-      els.distribution.innerHTML = '<p class="sidebar-empty">No distribution available.</p>';
+      const work = mode==='word' ? wordSearch(q) : mode==='phrase' ? phraseSearch(q) : mode==='near' ? nearSearch(q) : mode==='morph' ? morphSearch(q) : patternSearch(q,mode);
+      const result = await work;
+      if (ticket!==activeSearch) return;
+      searchResult={...result,query:q,mode,elapsed:performance.now()-start};
+      setupFormFacet();
+      await renderResults(ticket);
+    } catch(e) {
+      if (ticket!==activeSearch) return;
+      searchResult=null;
+      els.resultHeading.textContent='Search could not be completed';
+      setStatus(e.message || String(e),true);
+      els.distribution.innerHTML='<p class="muted">No results.</p>';
+      els.results.innerHTML='<div class="empty-state">Check the query or try a different search mode.</div>';
     }
   }
-
-  async function loadDoc(id) {
-    if (!docCache.has(id)) docCache.set(id, json(`${DATA}texts/${manifest.documents[id].file_id}.json`));
-    return docCache.get(id);
-  }
-
-  function spanAt(text, char) {
-    const m = text.slice(char).match(/^[\p{L}\p{M}\p{N}]+(?:[’'`´-][\p{L}\p{M}\p{N}]+)*/u);
-    return m ? m[0].length : 1;
-  }
-
-  function cleanSnippet(s) {
-    return s.replace(/\s+/g, ' ').trim();
-  }
-
-  function kwic(body, hit) {
-    let matchLength = spanAt(body, hit.char);
-    if (hit.phraseLength && hit.phraseLength > 1) {
-      const tail = body.slice(hit.char);
-      let seen = 0;
-      let end = matchLength;
-      for (const m of tail.matchAll(tokenRe)) {
-        if (m.index !== 0 && seen === 0) break;
-        seen++;
-        end = m.index + m[0].length;
-        if (seen >= hit.phraseLength) break;
-      }
-      if (seen >= hit.phraseLength) matchLength = end;
+  function setupFormFacet() {
+    const previouslySelected=els.formFilter.value || routeParams().get('form') || '';
+    const counts=new Map();
+    for (const h of searchResult.hits) counts.set(h.term,(counts.get(h.term)||0)+1);
+    const options=[...counts].sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]));
+    els.formFilter.replaceChildren(new Option('All forms',''));
+    if (options.length>1) {
+      for (const [term,count] of options.slice(0,400)) els.formFilter.add(new Option(`${term} (${nice(count)})`,term));
+      els.formFilter.value=previouslySelected;
     }
-
-    const matchEnd = hit.char + matchLength;
-    const radius = 155;
-    let leftStart = Math.max(0, hit.char - radius);
-    let rightEnd = Math.min(body.length, matchEnd + radius);
-    const leftClipped = leftStart > 0;
-    const rightClipped = rightEnd < body.length;
-
-    if (leftClipped) {
-      while (leftStart < hit.char && !/\s/u.test(body[leftStart])) leftStart++;
-      while (leftStart < hit.char && /\s/u.test(body[leftStart])) leftStart++;
-    }
-    if (rightClipped) {
-      while (rightEnd > matchEnd && !/\s/u.test(body[rightEnd - 1])) rightEnd--;
-      while (rightEnd > matchEnd && /\s/u.test(body[rightEnd - 1])) rightEnd--;
-    }
-
-    return {
-      left: cleanSnippet(body.slice(leftStart, hit.char)),
-      word: body.slice(hit.char, matchEnd),
-      right: cleanSnippet(body.slice(matchEnd, rightEnd)),
-      leftClipped,
-      rightClipped
-    };
+    els.formFilter.closest('label').hidden=options.length<=1;
   }
-
-  async function renderResults() {
-    const { hits, total, elapsed, candidateCount, truncated, mode, distribution } = searchResult;
-    const pages = Math.max(1, Math.ceil(hits.length / pageSize));
-    currentPage = Math.min(Math.max(1, currentPage), pages);
-    const pageHits = hits.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-    const docs = new Set(hits.map(h => h.doc)).size;
-    const modeLabel = els.modeSelect.options[els.modeSelect.selectedIndex]?.textContent || mode;
-
-    els.resultHeading.textContent = total ? `Results for “${searchResult.query}”` : `No results for “${searchResult.query}”`;
-    els.searchStatus.className = 'status-line';
-    els.searchStatus.textContent = total
-      ? `${total.toLocaleString()} occurrence${total === 1 ? '' : 's'} in ${docs.toLocaleString()} text${docs === 1 ? '' : 's'} · ${modeLabel.toLowerCase()} · ${elapsed.toFixed(0)} ms${truncated ? ' · display capped' : ''}`
-      : 'No occurrences found with the current filters.';
-    els.resultStats.innerHTML = '';
-    if (['wildcard','regex','morph'].includes(mode)) addStat(`${candidateCount.toLocaleString()} matching form${candidateCount === 1 ? '' : 's'}`);
-    if (truncated) addStat('Large result set capped for browser performance');
-    renderDistribution(distribution || []);
-    els.exportCsv.disabled = !hits.length;
-
+  function displayedHits() {
+    if (!searchResult) return [];
+    const form=els.formFilter.value;
+    return form ? searchResult.hits.filter(h=>h.term===form) : searchResult.hits;
+  }
+  function sourceCounts(hits) {
+    const map = new Map();
+    for (const h of hits) map.set(h.doc,(map.get(h.doc)||0)+1);
+    return [...map].sort((a,b)=>b[1]-a[1] || manifest.documents[a[0]].title.localeCompare(manifest.documents[b[0]].title));
+  }
+  function termEnd(body,hit) {
+    if (!hit.phraseLength || hit.phraseLength===1) return hit.char+wordLength(body,hit.char);
+    const tail=body.slice(hit.char,hit.char+1000);
+    const forms=[...tail.matchAll(TOKEN_RE)];
+    const last=forms[hit.phraseLength-1];
+    return last ? hit.char+last.index+last[0].length : hit.char+wordLength(body,hit.char);
+  }
+  function wordLength(body,start) {
+    const m=body.slice(start,start+160).match(/^[\p{L}\p{M}\p{N}]+(?:[’'`´-][\p{L}\p{M}\p{N}]+)*/u);
+    return m?m[0].length:1;
+  }
+  function contextRange(body,hit,count) {
+    const matchedEnd=termEnd(body,hit);
+    const radius=Math.max(600,count*22);
+    const beforeStart=Math.max(0,hit.char-radius), afterEnd=Math.min(body.length,matchedEnd+radius);
+    const before=body.slice(beforeStart,hit.char), after=body.slice(matchedEnd,afterEnd);
+    const beforeMatches=[...before.matchAll(TOKEN_RE)];
+    let candidates=beforeMatches;
+    if (beforeStart>0 && /[\p{L}\p{M}\p{N}]/u.test(body[beforeStart-1]) && beforeMatches[0]?.index===0) candidates=beforeMatches.slice(1);
+    const last=candidates.slice(-count);
+    let left=last.length?beforeStart+last[0].index:hit.char;
+    if (beforeStart===0 && (!last.length || beforeMatches.length<=count)) left=0;
+    const afterMatches=[...after.matchAll(TOKEN_RE)].slice(0,count);
+    let right=afterMatches.length?matchedEnd+afterMatches.at(-1).index+afterMatches.at(-1)[0].length:matchedEnd;
+    if (right===matchedEnd && afterEnd===body.length) right=body.length;
+    if (hit.nearChar!==undefined) {
+      const nearEnd=hit.nearChar+wordLength(body,hit.nearChar);
+      left=Math.min(left,hit.nearChar);
+      right=Math.max(right,nearEnd);
+    }
+    return {start:left,end:right,matchedEnd};
+  }
+  function contextMarkup(body,hit) {
+    const count=Number(els.contextSize.value)||24;
+    const {start,end,matchedEnd}=contextRange(body,hit,count);
+    const ranges=[{start:hit.char,end:matchedEnd,cls:''}];
+    if (hit.nearChar!==undefined && hit.nearChar!==hit.char)
+      ranges.push({start:hit.nearChar,end:hit.nearChar+wordLength(body,hit.nearChar),cls:'near-mark'});
+    const rangesInView=ranges.filter(x=>x.end>start&&x.start<end).sort((a,b)=>a.start-b.start);
+    let cursor=start, html='';
+    for (const range of rangesInView) {
+      if (range.start<cursor) continue;
+      html+=escapeHtml(body.slice(cursor,range.start));
+      html+=`<mark${range.cls?` class="${range.cls}"`:''}>${escapeHtml(body.slice(range.start,range.end))}</mark>`;
+      cursor=range.end;
+    }
+    html+=escapeHtml(body.slice(cursor,end));
+    return `${start>0?'<span class="ellipsis">… </span>':''}${html}${end<body.length?'<span class="ellipsis"> …</span>':''}`;
+  }
+  function renderDistribution(hits) {
+    const counts=sourceCounts(hits);
+    const shown=allDistribution?counts:counts.slice(0,15);
+    els.distribution.replaceChildren();
+    if (!counts.length) {els.distribution.innerHTML='<p class="muted">No matches.</p>';els.showAllSources.hidden=true;return;}
+    for (const [docId, count] of shown) {
+      const doc=manifest.documents[docId];
+      const row=document.createElement('div');row.className='distribution-row';
+      const button=document.createElement('button');button.type='button';button.textContent=`${doc.code} · ${doc.title}`;
+      button.title=`Show matches in ${doc.title}`;button.onclick=()=>searchOnlyText(docId);
+      const value=document.createElement('span');value.className='distribution-count';value.textContent=nice(count);
+      row.append(button,value);els.distribution.append(row);
+    }
+    els.showAllSources.hidden=counts.length<=15;
+    els.showAllSources.textContent=allDistribution?'Show fewer':'Show all '+nice(counts.length)+' texts';
+  }
+  async function renderResults(ticket=activeSearch) {
+    if (!searchResult) return;
+    const all=displayedHits();
+    const total=all.length;
+    const pages=Math.max(1,Math.ceil(total/pageSize()));
+    currentPage=Math.min(Math.max(1,currentPage),pages);
+    const page=all.slice((currentPage-1)*pageSize(),currentPage*pageSize());
+    const docs=new Set(all.map(h=>h.doc)).size;
+    els.resultsControls.hidden=false;
+    els.resultHeading.textContent=`Results for “${searchResult.query}”`;
+    const capped=searchResult.capped?' · results limited':searchResult.truncatedTerms?' · form expansion limited':'';
+    setStatus(`${nice(total)} occurrence${total===1?'':'s'} in ${nice(docs)} text${docs===1?'':'s'}${capped}`);
+    els.resultStats.textContent=[['regex','wildcard','morph'].includes(searchResult.mode)?`${nice(searchResult.expanded)} indexed form${searchResult.expanded===1?'':'s'}`:'', `Page ${nice(currentPage)} of ${nice(pages)}`].filter(Boolean).join(' · ');
+    els.copySearchLink.disabled=false;els.exportCsv.disabled=!total;
+    renderDistribution(all);
     if (!total) {
-      els.results.innerHTML = '<div class="empty-state">No matches. Try another spelling, search mode, or filter.</div>';
-      els.pagination.innerHTML = '';
-      return;
+      els.results.innerHTML='<div class="empty-state">No matches. Check the spelling, remove a filter, or try another search mode.</div>';
+      els.pagination.innerHTML='';return;
     }
-
-    const needed = [...new Set(pageHits.map(h => h.doc))];
-    await Promise.all(needed.map(loadDoc));
-    els.results.innerHTML = '';
-
-    const groups = [];
-    const groupMap = new Map();
-    for (const hit of pageHits) {
-      let group = groupMap.get(hit.doc);
-      if (!group) {
-        group = { doc: hit.doc, hits: [] };
-        groupMap.set(hit.doc, group);
-        groups.push(group);
-      }
-      group.hits.push(hit);
+    await Promise.all([...new Set(page.map(h=>h.doc))].map(loadText));
+    if (ticket!==activeSearch) return;
+    els.results.replaceChildren();
+    const groups=new Map();
+    for (const hit of page) {
+      if (!groups.has(hit.doc))groups.set(hit.doc,[]);
+      groups.get(hit.doc).push(hit);
     }
-
-    let pageOrdinal = (currentPage - 1) * pageSize;
-    for (const group of groups) {
-      const d = manifest.documents[group.doc];
-      const body = (await loadDoc(group.doc)).body;
-      const section = document.createElement('section');
-      section.className = 'result-group';
-      const metaParts = [d.code, d.dates, d.provenance].filter(Boolean);
-      section.innerHTML = `
-        <header class="result-group-head">
-          <div class="source-identity">
-            <h3 class="source-title">${escapeHtml(d.title)}</h3>
-            <p class="result-meta">${metaParts.map((x,i)=>i===0?`<span class="result-code">${escapeHtml(x)}</span>`:`<span>${escapeHtml(x)}</span>`).join('<span aria-hidden="true">·</span>')}</p>
-          </div>
-          <div class="source-actions">
-            <button type="button" data-open-source>Open text</button>
-            <button type="button" data-search-source>Search this text</button>
-            <button type="button" data-meta>Metadata</button>
-          </div>
-        </header>
-        <ol class="hit-list"></ol>`;
-      section.querySelector('[data-open-source]').onclick = () => openReader(group.doc);
-      section.querySelector('[data-search-source]').onclick = () => searchOnlyText(group.doc);
-      section.querySelector('[data-meta]').onclick = () => openMetadata(group.doc);
-      const list = section.querySelector('.hit-list');
-
-      for (const hit of group.hits) {
-        pageOrdinal++;
-        const k = kwic(body, hit);
-        const row = document.createElement('li');
-        row.className = 'hit-row';
-        row.innerHTML = `
-          <span class="hit-number">${pageOrdinal}</span>
-          <div class="context-line">${k.leftClipped ? '<span class="ellipsis">… </span>' : ''}${escapeHtml(k.left)}${k.left ? ' ' : ''}<mark>${escapeHtml(k.word)}</mark>${k.right ? ' ' : ''}${escapeHtml(k.right)}${k.rightClipped ? '<span class="ellipsis"> …</span>' : ''}</div>
-          <button type="button" class="hit-open">Open in text</button>`;
-        row.querySelector('.hit-open').onclick = () => openReader(hit.doc, hit.char);
+    let ordinal=(currentPage-1)*pageSize();
+    const allCounts=new Map(sourceCounts(all));
+    for (const [id,hits] of groups) {
+      const doc=manifest.documents[id], body=(await loadText(id)).body;
+      const section=document.createElement('section');section.className='result-group';
+      section.innerHTML=`<div class="result-group-head"><div><h3 class="source-title">${escapeHtml(doc.title)}</h3><p class="result-meta"><span class="result-code">${escapeHtml(doc.code)}</span>${[doc.dates,doc.provenance].filter(Boolean).map(v=>`<span>· ${escapeHtml(v)}</span>`).join('')}</p></div><span class="source-occur">${nice(allCounts.get(id))} match${allCounts.get(id)===1?'':'es'}</span></div><div class="source-actions"><button type="button" data-open>Read text</button><button type="button" data-limit>Only this text</button><button type="button" data-info>Metadata</button></div><ol class="hit-list"></ol>`;
+      section.querySelector('[data-open]').onclick=()=>openText(id);
+      section.querySelector('[data-limit]').onclick=()=>searchOnlyText(id);
+      section.querySelector('[data-info]').onclick=()=>openText(id,null,'metadata');
+      const list=section.querySelector('ol');
+      for (const hit of hits) {
+        ordinal++;
+        const row=document.createElement('li');row.className='hit-row';
+        row.innerHTML=`<span class="hit-number">${nice(ordinal)}</span><div class="context-line">${contextMarkup(body,hit)}</div><button type="button" class="hit-open" aria-label="Read occurrence ${ordinal} in ${escapeHtml(doc.title)}">In text →</button>`;
+        row.querySelector('.hit-open').onclick=()=>openText(id,hit.char,'text',termEnd(body,hit)-hit.char);
         list.append(row);
       }
-      els.results.append(section);
+      section.append(list);els.results.append(section);
     }
     renderPagination(pages);
   }
-
-  function addStat(text) {
-    const s = document.createElement('span'); s.className = 'stat-pill'; s.textContent = text; els.resultStats.append(s);
-  }
-
-  function renderDistribution(rows) {
-    els.distribution.innerHTML = '';
-    const sorted = [...rows].sort((a, b) => b[1] - a[1] || manifest.documents[a[0]].title.localeCompare(manifest.documents[b[0]].title));
-    if (!sorted.length) {
-      els.distribution.innerHTML = '<p class="sidebar-empty">No matches.</p>';
-      return;
-    }
-    for (const [docId, count] of sorted) {
-      const d = manifest.documents[docId];
-      const row = document.createElement('div');
-      row.className = 'distribution-row';
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = `${d.code} — ${d.title}`;
-      button.title = 'Show matches from this text only';
-      button.onclick = () => searchOnlyText(docId);
-      const n = document.createElement('span');
-      n.className = 'distribution-count';
-      n.textContent = count.toLocaleString();
-      row.append(button, n);
-      els.distribution.append(row);
-    }
-  }
-
-  function csvCell(value) {
-    const s = String(value ?? '');
-    return `"${s.replaceAll('"', '""')}"`;
-  }
-
-  async function exportResultsCsv() {
-    if (!searchResult?.hits?.length) return;
-    els.exportCsv.disabled = true;
-    const original = els.exportCsv.textContent;
-    els.exportCsv.textContent = 'Preparing…';
-    try {
-      const hits = searchResult.hits;
-      await Promise.all([...new Set(hits.map(h => h.doc))].map(loadDoc));
-      const rows = [['query','mode','mcp_code','title','dates','provenance','token_position','character_position','matched_form','context']];
-      for (const hit of hits) {
-        const d = manifest.documents[hit.doc];
-        const body = (await loadDoc(hit.doc)).body;
-        const k = kwic(body, hit);
-        rows.push([searchResult.query, searchResult.mode, d.code, d.title, d.dates, d.provenance, hit.token, hit.char, k.word, `${k.left} ${k.word} ${k.right}`]);
-      }
-      const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
-      const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mcp-${searchResult.mode}-${fold(searchResult.query).slice(0, 48) || 'search'}.csv`;
-      document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    } finally {
-      els.exportCsv.textContent = original;
-      els.exportCsv.disabled = false;
-    }
-  }
-
+  function pageSize(){return Number(els.pageSizeSelect.value)||PAGE_DEFAULT;}
   function renderPagination(pages) {
-    els.pagination.innerHTML = '';
-    if (pages <= 1) return;
-
-    const addButton = (label, page, options = {}) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = label;
-      if (options.current) {
-        b.className = 'is-current';
-        b.setAttribute('aria-current', 'page');
-      }
-      b.disabled = !!options.disabled;
-      if (!b.disabled && !options.current) b.onclick = () => goToPage(page);
+    els.pagination.replaceChildren();
+    if(pages<2) return;
+    const btn=(label,p,active=false,disabled=false)=>{
+      const b=document.createElement('button');b.type='button';b.textContent=label;
+      b.disabled=disabled||active;if(active){b.className='is-current';b.setAttribute('aria-current','page');}
+      if(!b.disabled)b.onclick=()=>goPage(p);
       els.pagination.append(b);
     };
-    const addEllipsis = () => {
-      const e = document.createElement('span');
-      e.className = 'page-ellipsis';
-      e.textContent = '…';
-      els.pagination.append(e);
-    };
-
-    addButton('Previous', currentPage - 1, { disabled: currentPage === 1 });
-    const windowStart = Math.max(2, currentPage - 2);
-    const windowEnd = Math.min(pages - 1, currentPage + 2);
-    addButton('1', 1, { current: currentPage === 1 });
-    if (windowStart > 2) addEllipsis();
-    for (let p = windowStart; p <= windowEnd; p++) addButton(String(p), p, { current: p === currentPage });
-    if (windowEnd < pages - 1) addEllipsis();
-    if (pages > 1) addButton(String(pages), pages, { current: currentPage === pages });
-    addButton('Next', currentPage + 1, { disabled: currentPage === pages });
-
-    const jump = document.createElement('form');
-    jump.className = 'page-jump';
-    jump.innerHTML = `<label>Page <input type="number" min="1" max="${pages}" value="${currentPage}" aria-label="Go to page"></label><button type="submit">Go</button>`;
-    jump.onsubmit = e => {
-      e.preventDefault();
-      const p = Math.max(1, Math.min(pages, Number(jump.querySelector('input').value) || 1));
-      goToPage(p);
-    };
+    const dots=()=>{const s=document.createElement('span');s.className='page-ellipsis';s.textContent='…';els.pagination.append(s);};
+    btn('Previous',currentPage-1,false,currentPage===1);
+    btn('1',1,currentPage===1);
+    const a=Math.max(2,currentPage-2),z=Math.min(pages-1,currentPage+2);
+    if(a>2)dots();
+    for(let n=a;n<=z;n++)btn(String(n),n,n===currentPage);
+    if(z<pages-1)dots();
+    btn(String(pages),pages,currentPage===pages);
+    btn('Next',currentPage+1,false,currentPage===pages);
+    const jump=document.createElement('form');jump.className='page-jump';
+    jump.innerHTML=`<label>Page <input type="number" min="1" max="${pages}" value="${currentPage}" aria-label="Go to page"></label><button type="submit">Go</button>`;
+    jump.onsubmit=e=>{e.preventDefault();goPage(Math.max(1,Math.min(pages,Number(jump.querySelector('input').value)||1)));};
     els.pagination.append(jump);
   }
-
-  async function goToPage(page) {
-    currentPage = page;
-    syncUrl(false);
-    await renderResults();
-    scrollResults();
+  function goPage(n) {currentPage=n;syncSearchUrl(true);renderResults();scrollResults();}
+  function scrollResults(){els.resultHeading.scrollIntoView({behavior:'smooth',block:'start'});}
+  async function searchOnlyText(id){els.textFilter.value=String(id);updateFilterCount();showView('search');await runSearch(true);window.scrollTo(0,0);}
+  function updateFilterCount(){
+    const count=[els.textFilter.value,els.centuryFilter.value,els.provenanceFilter.value.trim(),els.sortFilter.value!=='corpus',els.looseMatch.checked].filter(Boolean).length;
+    els.filterCount.textContent=count?`${count} filter${count===1?'':'s'} applied`:'';
+    els.mobileFilterCount.textContent=count?`(${count} active)`:'';
   }
-
-  async function searchOnlyText(docId) {
-    els.textFilter.value = String(docId);
-    filterCount();
-    showView('search', false);
-    await runSearch(true, 1);
+  function searchUrl() {
+    const q=new URLSearchParams();
+    if(els.query.value.trim())q.set('q',els.query.value.trim());
+    if(els.modeSelect.value!=='word')q.set('mode',els.modeSelect.value);
+    if(els.textFilter.value)q.set('text',els.textFilter.value);
+    if(els.centuryFilter.value)q.set('century',els.centuryFilter.value);
+    if(els.provenanceFilter.value.trim())q.set('prov',els.provenanceFilter.value.trim());
+    if(els.sortFilter.value!=='corpus')q.set('sort',els.sortFilter.value);
+    if(els.looseMatch.checked)q.set('loose','1');
+    if(els.formFilter.value)q.set('form',els.formFilter.value);
+    if(currentPage>1)q.set('page',String(currentPage));
+    if(pageSize()!==PAGE_DEFAULT)q.set('per',String(pageSize()));
+    if(els.contextSize.value!=='24')q.set('context',els.contextSize.value);
+    return `${location.pathname}${q.toString()?'?'+q.toString():''}`;
   }
-
-  function scrollResults() { els.searchStatus.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-
-  function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function syncSearchUrl(push) {
+    lastSearchUrl=searchUrl();
+    history[push?'pushState':'replaceState'](null,'',lastSearchUrl);
   }
-
-  function showView(name, updateHistory = true) {
-    const valid = new Set(['search','texts','help','about']);
-    if (!valid.has(name)) name = 'search';
-    document.querySelectorAll('.view').forEach(v => v.classList.toggle('is-active', v.id === `${name}View`));
-    document.querySelectorAll('[data-view-link]').forEach(a => a.classList.toggle('is-active', a.dataset.viewLink === name));
-    if (name === 'texts') renderTextBrowser();
-    if (updateHistory) {
-      if (name === 'search' && searchResult && els.query.value.trim()) {
-        syncUrl(false);
-      } else {
-        const p = new URLSearchParams();
-        if (name !== 'search') p.set('view', name);
-        const url = p.toString() ? `${location.pathname}?${p}` : location.pathname;
-        history.pushState(null, '', url);
+  function resetFormFromUrl() {
+    const p=routeParams();
+    els.query.value=p.get('q')||'';
+    const mode=p.get('mode')||'word';els.modeSelect.value=[...els.modeSelect.options].some(x=>x.value===mode)?mode:'word';
+    const text=p.get('text')||(p.get('texts')||'').split(',')[0];
+    els.textFilter.value=text&&[...els.textFilter.options].some(o=>o.value===text)?text:'';
+    els.centuryFilter.value=p.get('century')||'';
+    els.provenanceFilter.value=p.get('prov')||'';
+    els.sortFilter.value=p.get('sort')||'corpus';
+    els.looseMatch.checked=p.get('loose')==='1';
+    els.pageSizeSelect.value=['25','50','100'].includes(p.get('per'))?p.get('per'):'50';
+    els.contextSize.value=['12','24','42'].includes(p.get('context'))?p.get('context'):'24';
+    currentPage=Math.max(1,Math.floor(numeric(p.get('page'),1)));
+    els.formFilter.replaceChildren(new Option('All forms',''));
+    els.formFilter.value=p.get('form')||'';
+    els.modeHelp.textContent=modeHints[els.modeSelect.value];updateFilterCount();
+  }
+  function showView(name) {
+    currentView=name;
+    document.querySelectorAll('.view').forEach(x=>x.classList.toggle('is-active',x.id===`${name}View`));
+    document.querySelectorAll('[data-view-link]').forEach(a=>{
+      const selected=a.dataset.viewLink===(name==='reader'?'texts':name);
+      a.classList.toggle('is-active',selected);
+      if(selected)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+    });
+  }
+  function goView(name) {
+    let url=name==='search'?lastSearchUrl:`${location.pathname}?view=${encodeURIComponent(name)}`;
+    history.pushState(null,'',url);handleRoute();window.scrollTo(0,0);
+  }
+  function switchToSearch(){if(currentView!=='search')goView('search');}
+  async function handleRoute() {
+    const p=routeParams();const view=p.get('view')||'search';
+    if(view==='reader') {
+      showView('reader');await loadReaderFromRoute(p);return;
+    }
+    showView(['search','texts','help','about'].includes(view)?view:'search');
+    if(view==='texts')renderTextCatalogue();
+    if(view==='search') {
+      resetFormFromUrl();lastSearchUrl=`${location.pathname}${location.search}`;
+      if(els.query.value.trim())await runSearch(false);
+      else {
+        ++activeSearch;searchResult=null;
+        els.resultHeading.textContent='Ready to search';setStatus('');els.resultStats.textContent='';
+        els.results.innerHTML='<div class="empty-state">Enter a word or expression above to search the full corpus.</div>';
+        els.resultsControls.hidden=true;els.pagination.innerHTML='';
+        els.distribution.innerHTML='<p class="muted">Search to see the distribution.</p>';
+        els.copySearchLink.disabled=true;els.exportCsv.disabled=true;
       }
     }
-    window.scrollTo({ top: 0, behavior: 'auto' });
   }
-
-  function searchFromReader() {
-    if (currentReader == null) return;
-    els.textFilter.value = String(currentReader);
-    filterCount();
-    els.readerDialog.close();
-    showView('search');
-    els.query.focus();
+  async function exportCSV() {
+    const hits=displayedHits();if(!hits.length)return;
+    els.exportCsv.disabled=true;const old=els.exportCsv.textContent;
+    els.exportCsv.textContent='Preparing…';
+    try {
+      const ids=[...new Set(hits.map(x=>x.doc))];
+      // Load sequentially to avoid congesting the connection on large exports.
+      const docs=new Map();for(const id of ids)docs.set(id,(await loadText(id)).body);
+      const rows=[['query','mode','code','title','dates','provenance','token_position','character_position','matched_form','context']];
+      for(const hit of hits){
+        const d=manifest.documents[hit.doc],body=docs.get(hit.doc);
+        const {start,end,matchedEnd}=contextRange(body,hit,24);
+        rows.push([searchResult.query,searchResult.mode,d.code,d.title,d.dates,d.provenance,hit.token,hit.char,body.slice(hit.char,matchedEnd),body.slice(start,end).replace(/\s+/g,' ').trim()]);
+      }
+      const csv=rows.map(row=>row.map(s=>`"${String(s??'').replaceAll('"','""')}"`).join(',')).join('\r\n');
+      const blob=new Blob(['\ufeff',csv],{type:'text/csv;charset=utf-8'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=`malay-concordance-${fold(searchResult.query).slice(0,50)||'results'}.csv`;document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+    }catch(e){setStatus(`CSV export failed: ${e.message}`,true);}finally{els.exportCsv.disabled=false;els.exportCsv.textContent=old;}
   }
-
-  function setReaderTab(name) {
-    const map = { text: els.readerText, metadata: els.readerMeta, vocabulary: els.readerVocab };
-    Object.entries(map).forEach(([key, button]) => button.classList.toggle('is-active', key === name));
+  async function copyUrl(button) {
+    const old=button.textContent;
+    try {await navigator.clipboard.writeText(location.href);button.textContent='Copied';}
+    catch(e) {window.prompt('Copy this URL:',location.href);}
+    setTimeout(()=>button.textContent=old,1300);
   }
-
-  async function openReader(id, char = null) {
-    currentReader = id;
-    currentReaderChar = char;
-    setReaderTab('text');
-    const d = manifest.documents[id], doc = await loadDoc(id);
-    els.readerTitle.textContent = d.title;
-    els.readerSubtitle.textContent = [d.code, d.dates, d.provenance].filter(Boolean).join(' · ');
-    els.readerContent.className = 'reader-content';
-    els.readerContent.innerHTML = '';
-    if (char == null) els.readerContent.textContent = doc.body;
-    else {
-      const len = spanAt(doc.body, char);
-      els.readerContent.append(document.createTextNode(doc.body.slice(0, char)));
-      const mark = document.createElement('mark');
-      mark.textContent = doc.body.slice(char, char + len);
-      els.readerContent.append(mark);
-      els.readerContent.append(document.createTextNode(doc.body.slice(char + len)));
-      setTimeout(() => mark.scrollIntoView({ block: 'center' }), 60);
-    }
-    if (!els.readerDialog.open) els.readerDialog.showModal();
-  }
-
-  async function openMetadata(id) {
-    currentReader = id;
-    setReaderTab('metadata');
-    const d = manifest.documents[id];
-    els.readerTitle.textContent = d.title;
-    els.readerSubtitle.textContent = [d.code, d.dates, d.provenance].filter(Boolean).join(' · ');
-    els.readerContent.className = 'reader-content metadata-view';
-    const pairs = [['MCP code',d.code],['Title',d.title],['Edition',d.edition],['Manuscript',d.manuscript],['Dates',d.dates],['Provenance',d.provenance],['MCP word count',d.word_count_raw],['Reference scheme',d.reference_scheme],['Genre',d.genre],['Source file',d.source_file]];
-    els.readerContent.innerHTML = `<dl>${pairs.filter(([,v])=>v).map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl><div class="metadata-raw">${escapeHtml(d.metadata_raw)}</div>`;
-    if (!els.readerDialog.open) els.readerDialog.showModal();
-  }
-
-  async function openVocab(id) {
-    currentReader = id;
-    setReaderTab('vocabulary');
-    const d = manifest.documents[id];
-    if (!vocabCache.has(id)) vocabCache.set(id, json(`${DATA}vocab/${d.file_id}.json`));
-    const vocab = await vocabCache.get(id);
-    els.readerTitle.textContent = d.title;
-    els.readerSubtitle.textContent = `${d.code} · ${vocab.length.toLocaleString()} indexed forms`;
-    els.readerContent.className = 'reader-content';
-    const table = document.createElement('table');
-    table.className = 'vocab-table';
-    const tbody = document.createElement('tbody');
-    for (const [term,count] of vocab) {
+  function renderTextCatalogue() {
+    if(!manifest)return;
+    const query=fold(els.textBrowserSearch.value), sort=els.textBrowserSort.value;
+    let docs=manifest.documents.filter(d=>!query||fold([d.title,d.code,d.dates,d.provenance].join(' ')).includes(query));
+    docs=[...docs];
+    if(sort==='title')docs.sort((a,b)=>a.title.localeCompare(b.title));
+    else if(sort==='date')docs.sort((a,b)=>(a.year_min||9999)-(b.year_min||9999)||a.title.localeCompare(b.title));
+    else if(sort==='words')docs.sort((a,b)=>(b.word_count||b.indexed_tokens)-(a.word_count||a.indexed_tokens));
+    els.textBrowserCount.textContent=`${nice(docs.length)} of ${nice(manifest.documents.length)} texts`;
+    els.textBrowser.replaceChildren();
+    for (const d of docs){
       const tr=document.createElement('tr');
-      const a=document.createElement('td');
-      const b=document.createElement('td');
-      a.textContent=term; b.textContent=count.toLocaleString();
-      tr.append(a,b); tbody.append(tr);
-    }
-    table.append(tbody);
-    els.readerContent.replaceChildren(table);
-    if (!els.readerDialog.open) els.readerDialog.showModal();
-  }
-
-  function renderTextBrowser() {
-    const q = fold(els.textBrowserSearch.value);
-    let docs = manifest.documents.filter(d => !q || fold([d.code,d.title,d.dates,d.provenance].join(' ')).includes(q));
-    const sort = els.textBrowserSort.value;
-    if (sort === 'title') docs = [...docs].sort((a,b) => a.title.localeCompare(b.title));
-    else if (sort === 'date') docs = [...docs].sort((a,b) => (a.year_min || 9999) - (b.year_min || 9999) || a.title.localeCompare(b.title));
-    else if (sort === 'words') docs = [...docs].sort((a,b) => b.indexed_tokens - a.indexed_tokens || a.title.localeCompare(b.title));
-
-    els.textBrowser.innerHTML = '';
-    els.textBrowserCount.textContent = `${docs.length.toLocaleString()} of ${manifest.documents.length.toLocaleString()} texts`;
-    for (const d of docs) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><button class="text-title-button" type="button">${escapeHtml(d.title)}</button><br><span class="text-code-inline">${escapeHtml(d.code)}</span></td>
-        <td>${escapeHtml(d.dates || '—')}</td>
-        <td>${escapeHtml(d.provenance || '—')}</td>
-        <td class="number-column">${(d.word_count || d.indexed_tokens).toLocaleString()}</td>
-        <td class="action-column"><button class="table-open" type="button">Open</button></td>`;
-      tr.querySelector('.text-title-button').onclick = () => openReader(d.id);
-      tr.querySelector('.table-open').onclick = () => openReader(d.id);
+      tr.innerHTML=`<td><button type="button" class="text-title-button">${escapeHtml(d.title)}</button><br><span class="text-code-inline">${escapeHtml(d.code)}</span></td><td>${escapeHtml(d.dates||'—')}</td><td>${escapeHtml(d.provenance||'—')}</td><td class="numeric">${nice(d.word_count||d.indexed_tokens)}</td><td><button type="button" class="table-open">Open →</button></td>`;
+      tr.querySelectorAll('button').forEach(b=>b.onclick=()=>openText(d.id));
       els.textBrowser.append(tr);
     }
   }
-
-  function populateFilters() {
-    els.textFilter.insertAdjacentHTML('beforeend', manifest.documents.map(d => `<option value="${d.id}">${escapeHtml(d.code)} — ${escapeHtml(d.title)}</option>`).join(''));
-    els.corpusSummary.textContent = `${manifest.document_count.toLocaleString()} texts · ${manifest.indexed_tokens.toLocaleString()} indexed words`;
+  function openText(id,pos=null,tab='text',length=null) {
+    const d=manifest.documents[id];if(!d)return;
+    const p=new URLSearchParams({view:'reader',doc:d.code});
+    if(pos!==null)p.set('pos',String(pos));
+    if(tab!=='text')p.set('tab',tab);
+    if(length&&length>1)p.set('len',String(length));
+    history.pushState(null,'',`${location.pathname}?${p}`);
+    handleRoute();window.scrollTo(0,0);
   }
-
-  function updateModeHelp() {
-    els.modeHelp.textContent = modeHelp[els.modeSelect.value];
+  function findDoc(code) {
+    return manifest.documents.find(d=>d.code===code) || manifest.documents.find(d=>d.file_id===code) || null;
   }
-
-  function filterCount() {
-    let n = 0;
-    if (els.textFilter.value) n++;
-    if (els.centuryFilter.value) n++;
-    if (els.provenanceFilter.value.trim()) n++;
-    if (els.sortFilter.value !== 'corpus') n++;
-    if (els.looseMatch.checked) n++;
-    els.filterCount.textContent = n ? `${n} filter${n === 1 ? '' : 's'} active` : '';
+  async function loadReaderFromRoute(p) {
+    const d=findDoc(p.get('doc'));if(!d){els.readerTitle.textContent='Text not found';els.readerContent.textContent='The requested text is not in this corpus.';return;}
+    currentReader=d.id;
+    els.readerCode.textContent=d.code;els.readerTitle.textContent=d.title;
+    els.readerSubtitle.textContent=[d.dates,d.provenance].filter(Boolean).join(' · ');
+    els.readerDetails.replaceChildren();
+    const fields=[['MCP code',d.code],['Dates',d.dates],['Provenance',d.provenance],['Words',nice(d.word_count||d.indexed_tokens)],['Reference scheme',d.reference_scheme]];
+    for(const [label,value] of fields)if(value){const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.textContent=value;els.readerDetails.append(dt,dd);}
+    readerPosition=p.has('pos')?Math.max(0,Math.floor(numeric(p.get('pos'),0))):null;
+    readerTab=['text','metadata','vocabulary'].includes(p.get('tab'))?p.get('tab'):'text';
+    els.readerFind.value='';readerFindMatches=[];readerFindIndex=0;
+    els.readerContent.textContent='Loading text…';
+    const doc=await loadText(d.id);
+    if(currentReader!==d.id||currentView!=='reader')return;
+    readerDoc=doc;
+    await showReaderTab(readerTab,true);
   }
-
-  function syncUrl(replace = false) {
-    const p = new URLSearchParams();
-    const q = els.query.value.trim();
-    if (q) p.set('q', q);
-    if (els.modeSelect.value !== 'word') p.set('mode', els.modeSelect.value);
-    if (els.textFilter.value) p.set('text', els.textFilter.value);
-    if (els.centuryFilter.value) p.set('century', els.centuryFilter.value);
-    if (els.provenanceFilter.value.trim()) p.set('prov', els.provenanceFilter.value.trim());
-    if (els.sortFilter.value !== 'corpus') p.set('sort', els.sortFilter.value);
-    if (els.looseMatch.checked) p.set('loose','1');
-    if (currentPage > 1) p.set('page', String(currentPage));
-    if (pageSize !== DEFAULT_PAGE_SIZE) p.set('per', String(pageSize));
-    const url = `${location.pathname}${p.toString() ? `?${p}` : ''}`;
-    history[replace ? 'replaceState' : 'pushState'](null, '', url);
+  async function showReaderTab(tab,fromRoute=false) {
+    readerTab=tab;
+    for(const [name,id] of Object.entries({text:'readerText',metadata:'readerMeta',vocabulary:'readerVocab'})){
+      const b=els[id];b.classList.toggle('is-active',name===tab);b.setAttribute('aria-selected',String(name===tab));
+    }
+    els.readerFindBar.hidden=tab!=='text';
+    if(!fromRoute){const params=routeParams();if(tab==='text')params.delete('tab');else params.set('tab',tab);history.replaceState(null,'',`${location.pathname}?${params}`);}
+    if(tab==='metadata') {
+      const d=manifest.documents[currentReader];
+      const fields=[['Title',d.title],['MCP code',d.code],['Edition',d.edition],['Manuscript',d.manuscript],['Dates',d.dates],['Provenance',d.provenance],['MCP word count',d.word_count_raw],['Reference scheme',d.reference_scheme],['Source file',d.source_file]];
+      els.readerContent.className='reader-content metadata-view';
+      els.readerContent.innerHTML=`<dl class="metadata-list">${fields.filter(([,v])=>v).map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl><details><summary>Complete archival editorial record</summary><div class="metadata-raw">${escapeHtml(d.metadata_raw)}</div></details>`;
+    } else if (tab==='vocabulary') {
+      els.readerContent.className='reader-content metadata-view';
+      els.readerContent.innerHTML='<p>Loading vocabulary…</p>';
+      await renderVocabulary();
+    } else {showReaderText(readerPosition);}
   }
-
-  function restoreUrl() {
-    const p = new URLSearchParams(location.search);
-    const view = p.get('view') || 'search';
-    if (p.has('q')) els.query.value = p.get('q');
-    const mode = p.get('mode');
-    if (mode && [...els.modeSelect.options].some(o => o.value === mode)) els.modeSelect.value = mode;
-    const textId = p.get('text') || (p.get('texts') || '').split(',')[0];
-    if (textId && [...els.textFilter.options].some(o => o.value === textId)) els.textFilter.value = textId;
-    if (p.has('century')) els.centuryFilter.value = p.get('century');
-    if (p.has('prov')) els.provenanceFilter.value = p.get('prov');
-    if (p.has('sort')) els.sortFilter.value = p.get('sort');
-    els.looseMatch.checked = p.get('loose') === '1';
-    const per = Number(p.get('per'));
-    pageSize = [25,50,100].includes(per) ? per : DEFAULT_PAGE_SIZE;
-    els.pageSizeSelect.value = String(pageSize);
-    requestedPage = Math.max(1, Number(p.get('page')) || 1);
-    updateModeHelp();
-    filterCount();
-    showView(view, false);
-    return view === 'search' && !!els.query.value.trim();
+  function showReaderText(pos=null,len=null) {
+    if(!readerDoc)return;
+    const body=readerDoc.body;
+    els.readerContent.className='reader-content';els.readerContent.replaceChildren();
+    if(pos===null||pos<0||pos>=body.length){els.readerContent.textContent=body;return;}
+    const param=routeParams();len=len||Math.max(1,Math.floor(numeric(param.get('len'),0)))||wordLength(body,pos);
+    els.readerContent.append(document.createTextNode(body.slice(0,pos)));
+    const mark=document.createElement('mark');mark.id='currentMatch';mark.textContent=body.slice(pos,pos+len);
+    els.readerContent.append(mark,document.createTextNode(body.slice(pos+len)));
+    requestAnimationFrame(()=>mark.scrollIntoView({behavior:'instant',block:'center'}));
   }
-
-  async function init() {
-    try {
-      manifest = await json(`${DATA}manifest.json`);
-      populateFilters();
-      renderTextBrowser();
-      const hasQuery = restoreUrl();
-      if (hasQuery) await runSearch(false, requestedPage);
-      else {
-        els.resultHeading.textContent = 'Ready to search';
-        els.searchStatus.textContent = '';
-        els.results.innerHTML = '<div class="empty-state">Enter a word, phrase, or pattern above.</div>';
+  function findWithinReader() {
+    if(!readerDoc||readerTab!=='text')return;
+    const word=els.readerFind.value.trim();readerFindMatches=[];readerFindIndex=0;
+    if(!word){els.readerFindCount.textContent='';return;}
+    const body=readerDoc.body.toLocaleLowerCase(),target=word.toLocaleLowerCase();
+    let from=0;
+    while(from<body.length&&readerFindMatches.length<20000){const at=body.indexOf(target,from);if(at<0)break;readerFindMatches.push(at);from=at+Math.max(1,target.length);}
+    els.readerFindCount.textContent=readerFindMatches.length?`${nice(readerFindMatches.length)} matches`:'No matches';
+    if(readerFindMatches.length)moveReaderMatch(0);
+  }
+  function moveReaderMatch(index) {
+    if(!readerFindMatches.length)return;
+    readerFindIndex=(index+readerFindMatches.length)%readerFindMatches.length;
+    readerPosition=readerFindMatches[readerFindIndex];
+    const p=routeParams();p.set('pos',String(readerPosition));p.set('len',String(els.readerFind.value.length));
+    history.replaceState(null,'',`${location.pathname}?${p}`);
+    showReaderText(readerPosition,els.readerFind.value.length);
+    els.readerFindCount.textContent=`${nice(readerFindIndex+1)} / ${nice(readerFindMatches.length)}`;
+  }
+  async function renderVocabulary() {
+    if(currentReader==null)return;
+    const vocab=await loadVocabulary(currentReader);
+    if(readerTab!=='vocabulary')return;
+    const wrapper=document.createElement('div');
+    wrapper.innerHTML='<div class="vocab-toolbar"><input id="vocabQuery" type="search" placeholder="Filter word forms" aria-label="Filter vocabulary"><select id="vocabSort" aria-label="Vocabulary order"><option value="freq">Most frequent</option><option value="alpha">Alphabetical</option></select></div><table class="vocab-table"><tbody id="vocabBody"></tbody></table><div class="vocab-footer"><span id="vocabCount"></span><button class="button-secondary" id="vocabMore" type="button">Show more</button></div>';
+    els.readerContent.replaceChildren(wrapper);
+    const input=wrapper.querySelector('#vocabQuery'),sort=wrapper.querySelector('#vocabSort'),tbody=wrapper.querySelector('#vocabBody'),counter=wrapper.querySelector('#vocabCount'),more=wrapper.querySelector('#vocabMore');
+    function paint(){
+      let rows=vocab.filter(([form])=>!input.value||fold(form).includes(fold(input.value)));
+      rows=[...rows];
+      if(sort.value==='alpha')rows.sort((a,b)=>a[0].localeCompare(b[0]));else rows.sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+      tbody.replaceChildren();
+      for(const [term,count] of rows.slice(0,vocabPage*100)){
+        const tr=document.createElement('tr');const td=document.createElement('td'),num=document.createElement('td'),button=document.createElement('button');
+        button.textContent=term;button.onclick=()=>{els.query.value=term;els.modeSelect.value='word';els.textFilter.value=String(currentReader);showView('search');runSearch(true);window.scrollTo(0,0);};
+        td.append(button);num.textContent=nice(count);tr.append(td,num);tbody.append(tr);
       }
-    } catch (e) {
-      els.corpusSummary.textContent = 'Corpus index unavailable.';
-      els.resultHeading.textContent = 'Unable to load corpus';
-      els.searchStatus.textContent = e.message || String(e);
-      els.searchStatus.className = 'status-line error';
+      counter.textContent=`Showing ${nice(Math.min(rows.length,vocabPage*100))} of ${nice(rows.length)} forms`;
+      more.hidden=rows.length<=vocabPage*100;
+    }
+    input.addEventListener('input',()=>{vocabPage=1;paint();});sort.addEventListener('change',()=>{vocabPage=1;paint();});
+    more.onclick=()=>{vocabPage++;paint();};vocabPage=1;paint();
+  }
+  function onFilterUpdate() {updateFilterCount();if(els.query.value.trim())runSearch(true);}
+  function setupEvents() {
+    els.searchForm.addEventListener('submit',e=>{e.preventDefault();switchToSearch();runSearch(true);});
+    document.querySelectorAll('[data-view-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();goView(a.dataset.viewLink);}));
+    document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{els.query.value=button.dataset.example;els.modeSelect.value=button.dataset.exampleMode;els.modeHelp.textContent=modeHints[els.modeSelect.value];switchToSearch();runSearch(true);}));
+    els.modeSelect.addEventListener('change',()=>els.modeHelp.textContent=modeHints[els.modeSelect.value]);
+    for(const x of [els.textFilter,els.centuryFilter,els.sortFilter,els.looseMatch])x.addEventListener('change',onFilterUpdate);
+    let provenanceTimer;els.provenanceFilter.addEventListener('input',()=>{clearTimeout(provenanceTimer);provenanceTimer=setTimeout(onFilterUpdate,450);});
+    els.clearFilters.addEventListener('click',()=>{els.textFilter.value='';els.centuryFilter.value='';els.provenanceFilter.value='';els.sortFilter.value='corpus';els.looseMatch.checked=false;els.formFilter.value='';onFilterUpdate();});
+    els.formFilter.addEventListener('change',()=>{currentPage=1;syncSearchUrl(true);renderResults();});
+    els.pageSizeSelect.addEventListener('change',()=>{currentPage=1;syncSearchUrl(true);renderResults();});
+    els.contextSize.addEventListener('change',()=>{syncSearchUrl(true);renderResults();});
+    els.exportCsv.onclick=exportCSV;els.copySearchLink.onclick=()=>copyUrl(els.copySearchLink);
+    els.showAllSources.onclick=()=>{allDistribution=!allDistribution;renderDistribution(displayedHits());};
+    els.textBrowserSearch.addEventListener('input',renderTextCatalogue);els.textBrowserSort.addEventListener('change',renderTextCatalogue);
+    els.readerBack.onclick=()=>{if(history.length>1)history.back();else goView('texts');};
+    els.readerText.onclick=()=>showReaderTab('text');els.readerMeta.onclick=()=>showReaderTab('metadata');els.readerVocab.onclick=()=>showReaderTab('vocabulary');
+    els.readerSearch.onclick=()=>{els.textFilter.value=String(currentReader);showView('search');syncSearchUrl(true);els.query.focus();window.scrollTo(0,0);};
+    els.copyReaderLink.onclick=()=>copyUrl(els.copyReaderLink);
+    let findTimer;els.readerFind.addEventListener('input',()=>{clearTimeout(findTimer);findTimer=setTimeout(findWithinReader,280);});
+    els.readerFindNext.onclick=()=>moveReaderMatch(readerFindIndex+1);els.readerFindPrev.onclick=()=>moveReaderMatch(readerFindIndex-1);
+    window.addEventListener('popstate',()=>{handleRoute();});
+    document.addEventListener('keydown',e=>{
+      if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
+        e.preventDefault();goView('search');els.query.focus();
+      }
+    });
+  }
+  async function init() {
+    setupEvents();
+    try{
+      manifest=await json(`${DATA}manifest.json`);
+      const smallScreen=window.matchMedia('(max-width: 800px)');
+      els.mobileFilters.open=!smallScreen.matches;
+      smallScreen.addEventListener('change',event=>{els.mobileFilters.open=!event.matches;});
+      els.corpusSummary.textContent=`${nice(manifest.document_count)} texts · ${nice(manifest.indexed_tokens)} indexed words`;
+      for(const d of manifest.documents)els.textFilter.add(new Option(`${d.code} · ${d.title}`,String(d.id)));
+      renderTextCatalogue();await handleRoute();
+    }catch(e){
+      els.corpusSummary.textContent='Corpus data could not be loaded.';
+      els.results.innerHTML='<div class="empty-state">The search index is unavailable. Please try again later.</div>';
+      setStatus(e.message||String(e),true);
     }
   }
-
-  els.searchForm.addEventListener('submit', e => { e.preventDefault(); runSearch(true, 1); });
-  document.querySelectorAll('[data-example]').forEach(button => button.addEventListener('click', async () => {
-    els.modeSelect.value = button.dataset.exampleMode;
-    els.query.value = button.dataset.example;
-    updateModeHelp();
-    showView('search', false);
-    await runSearch(true, 1);
-  }));
-
-  els.modeSelect.addEventListener('change', updateModeHelp);
-  document.querySelectorAll('[data-view-link]').forEach(a => a.addEventListener('click', e => {
-    e.preventDefault();
-    showView(a.dataset.viewLink);
-  }));
-  els.textBrowserSearch.addEventListener('input', renderTextBrowser);
-  els.textBrowserSort.addEventListener('change', renderTextBrowser);
-  [els.textFilter,els.centuryFilter,els.provenanceFilter,els.sortFilter,els.looseMatch].forEach(x => x.addEventListener('change', filterCount));
-  els.provenanceFilter.addEventListener('input', filterCount);
-  els.clearFilters.addEventListener('click', async () => {
-    els.textFilter.value = '';
-    els.centuryFilter.value = '';
-    els.provenanceFilter.value = '';
-    els.sortFilter.value = 'corpus';
-    els.looseMatch.checked = false;
-    filterCount();
-    if (searchResult) await runSearch(true, 1);
-  });
-  els.pageSizeSelect.addEventListener('change', async () => {
-    pageSize = Number(els.pageSizeSelect.value) || DEFAULT_PAGE_SIZE;
-    currentPage = 1;
-    if (searchResult) {
-      syncUrl(false);
-      await renderResults();
-      scrollResults();
-    }
-  });
-  els.readerClose.addEventListener('click', () => els.readerDialog.close());
-  els.readerText.addEventListener('click', () => currentReader != null && openReader(currentReader, currentReaderChar));
-  els.readerMeta.addEventListener('click', () => currentReader != null && openMetadata(currentReader));
-  els.readerVocab.addEventListener('click', () => currentReader != null && openVocab(currentReader));
-  els.readerSearch.addEventListener('click', searchFromReader);
-  els.readerDialog.addEventListener('click', e => { if (e.target === els.readerDialog) els.readerDialog.close(); });
-  els.exportCsv.addEventListener('click', exportResultsCsv);
-  document.addEventListener('keydown', e => {
-    if (e.key === '/' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
-      e.preventDefault();
-      showView('search');
-      els.query.focus();
-    }
-  });
-  window.addEventListener('popstate', async () => {
-    searchResult = null;
-    els.query.value = '';
-    els.modeSelect.value = 'word';
-    els.textFilter.value = '';
-    els.centuryFilter.value = '';
-    els.provenanceFilter.value = '';
-    els.sortFilter.value = 'corpus';
-    els.looseMatch.checked = false;
-    const hasQuery = restoreUrl();
-    if (hasQuery) await runSearch(false, requestedPage);
-  });
-
   init();
 })();
