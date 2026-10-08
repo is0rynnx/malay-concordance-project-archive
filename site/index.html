@@ -73,7 +73,55 @@
                 <button type="button" id="exportCsv" class="button-secondary" disabled>Export CSV</button>
               </div>
             </div>
+
+            <!-- Experimental integrated analysis - core concordance layer -->
+            <section id="analysisPanel" class="analysis-panel" hidden aria-label="Search analysis">
+              <p id="profileLine" class="profile-line"></p>
+              <div class="analysis-grid">
+                <section class="analysis-block timeline-block" aria-labelledby="timelineHeading">
+                  <div class="analysis-head">
+                    <h3 id="timelineHeading">Usage over time</h3>
+                    <div class="analysis-toggle" role="group" aria-label="Timeline measure">
+                      <button type="button" id="timelineRate" class="is-active">per 10k</button>
+                      <button type="button" id="timelineRaw">raw</button>
+                    </div>
+                  </div>
+                  <div id="timelineChart" class="timeline-chart"></div>
+                  <p class="analysis-note">Dated by the earliest year recorded for each text in the archive.</p>
+                </section>
+                <section class="analysis-block collocation-block" aria-labelledby="collocationHeading">
+                  <div class="analysis-head">
+                    <h3 id="collocationHeading">Nearby words</h3>
+                    <label>Window
+                      <select id="collocationWindow">
+                        <option value="1">+/-1</option>
+                        <option value="5" selected>+/-5</option>
+                        <option value="10">+/-10</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div id="collocationList" class="collocation-list"><span class="muted">Search to analyse nearby words.</span></div>
+                  <p id="collocationNote" class="analysis-note"></p>
+                </section>
+              </div>
+            </section>
+
             <div class="results-controls" id="resultsControls">
+              <label>View
+                <select id="resultView">
+                  <option value="context">Context</option>
+                  <option value="kwic">KWIC</option>
+                </select>
+              </label>
+              <label id="kwicSortLabel" hidden>KWIC sort
+                <select id="kwicSort">
+                  <option value="corpus">Corpus order</option>
+                  <option value="l1">L1</option>
+                  <option value="l2">L2</option>
+                  <option value="r1">R1</option>
+                  <option value="r2">R2</option>
+                </select>
+              </label>
               <label>Matched form
                 <select id="formFilter"><option value="">All forms</option></select>
               </label>

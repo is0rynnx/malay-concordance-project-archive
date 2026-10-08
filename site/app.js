@@ -6,13 +6,15 @@
   const MAX_RESULTS = 120000;
   const TOKEN_RE = /[\p{L}\p{M}\p{N}]+(?:[’'`´-][\p{L}\p{M}\p{N}]+)*/gu;
   const els = Object.fromEntries([...document.querySelectorAll('[id]')].map(e => [e.id, e]));
-  const postingCache = new Map(), textCache = new Map(), vocabCache = new Map();
+  const postingCache = new Map(), textCache = new Map(), vocabCache = new Map(), tokenCache = new Map();
   let manifest = null, lexicon = null, foldMap = null;
   let searchResult = null, lastSearchUrl = location.pathname, activeSearch = 0;
   let currentPage = 1, currentView = 'search';
   let currentReader = null, readerDoc = null, readerPosition = null, readerTab = 'text';
   let readerFindMatches = [], readerFindIndex = 0, vocabPage = 1;
   let allDistribution = false;
+  let timelineMode = 'rate';
+  const COLLOCATION_SAMPLE = 4000;
 
   const modeHints = {
     word: 'Match a word form. Multiple words must appear in the same text.',
@@ -238,6 +240,7 @@
     setStatus('Searching…');
     els.resultHeading.textContent='Search results';
     els.results.innerHTML='';els.pagination.innerHTML='';els.resultStats.textContent='';
+    els.analysisPanel.hidden=true;
     els.exportCsv.disabled=true;els.copySearchLink.disabled=true;
     if (updateUrl) {
       currentPage=1;els.formFilter.value='';
@@ -254,6 +257,7 @@
     } catch(e) {
       if (ticket!==activeSearch) return;
       searchResult=null;
+      els.analysisPanel.hidden=true;
       els.resultHeading.textContent='Search could not be completed';
       setStatus(e.message || String(e),true);
       els.distribution.innerHTML='<p class="muted">No results.</p>';
@@ -281,6 +285,210 @@
     const map = new Map();
     for (const h of hits) map.set(h.doc,(map.get(h.doc)||0)+1);
     return [...map].sort((a,b)=>b[1]-a[1] || manifest.documents[a[0]].title.localeCompare(manifest.documents[b[0]].title));
+  }
+
+  function eligibleDocuments(ignoreCentury=false) {
+    return manifest.documents.filter((d,id) => {
+      const selected=els.textFilter.value;
+      if(selected!=='' && Number(selected)!==id) return false;
+      if(!ignoreCentury && els.centuryFilter.value){
+        const start=Number(els.centuryFilter.value);
+        if(!d.year_min || d.year_min<start || d.year_min>=start+100) return false;
+      }
+      const origin=norm(els.provenanceFilter.value.trim());
+      if(origin && !norm(d.provenance).includes(origin)) return false;
+      return true;
+    });
+  }
+  function per10k(count, words) { return words ? count / words * 10000 : 0; }
+  function compactRate(value) { return value>=10 ? value.toFixed(1) : value>=1 ? value.toFixed(2) : value.toFixed(3); }
+  function analysisMetrics(hits) {
+    const scope=eligibleDocuments();
+    const words=scope.reduce((n,d)=>n+(d.indexed_tokens||0),0);
+    const matchingDocs=[...new Set(hits.map(h=>h.doc))];
+    const dated=matchingDocs.map(id=>manifest.documents[id]).filter(d=>d.year_min);
+    const counts=sourceCounts(hits);
+    return {
+      words,
+      rate:per10k(hits.length,words),
+      scopeDocs:scope.length,
+      matchingDocs:matchingDocs.length,
+      earliest:dated.length?Math.min(...dated.map(d=>d.year_min)):null,
+      latest:dated.length?Math.max(...dated.map(d=>d.year_min)):null,
+      topShare:hits.length&&counts.length?counts[0][1]/hits.length*100:0
+    };
+  }
+  function renderProfile(hits) {
+    const m=analysisMetrics(hits);
+    const parts=[`${compactRate(m.rate)} per 10k indexed words`,`${nice(m.matchingDocs)} of ${nice(m.scopeDocs)} texts`];
+    if(m.earliest!==null) parts.push(`dated sources ${m.earliest}\u2013${m.latest}`);
+    if(hits.length>1) parts.push(`largest source ${m.topShare.toFixed(1)}% of matches`);
+    els.profileLine.textContent=parts.join(' \u00b7 ');
+  }
+  function timelineBuckets(hits) {
+    const hitCounts=new Map();
+    for(const h of hits){
+      const d=manifest.documents[h.doc];
+      if(!d.year_min) continue;
+      const century=Math.floor(d.year_min/100)*100;
+      hitCounts.set(century,(hitCounts.get(century)||0)+1);
+    }
+    const wordCounts=new Map();
+    for(const d of eligibleDocuments()){
+      if(!d.year_min) continue;
+      const century=Math.floor(d.year_min/100)*100;
+      wordCounts.set(century,(wordCounts.get(century)||0)+(d.indexed_tokens||0));
+    }
+    const years=[...new Set([...hitCounts.keys(),...wordCounts.keys()])].sort((a,b)=>a-b);
+    return years.map(year=>({year,hits:hitCounts.get(year)||0,words:wordCounts.get(year)||0,rate:per10k(hitCounts.get(year)||0,wordCounts.get(year)||0)}));
+  }
+  function centuryLabel(year){
+    const n=Math.floor(year/100)+1;
+    const suffix=n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th';
+    return `${n}${suffix}`;
+  }
+  function renderTimeline(hits) {
+    const rows=timelineBuckets(hits);
+    els.timelineChart.replaceChildren();
+    if(!rows.length){els.timelineChart.innerHTML='<span class="muted">No dated results in the current scope.</span>';return;}
+    const values=rows.map(r=>timelineMode==='raw'?r.hits:r.rate);
+    const max=Math.max(...values,0);
+    for(const row of rows){
+      const value=timelineMode==='raw'?row.hits:row.rate;
+      const button=document.createElement('button');button.type='button';button.className='timeline-item';
+      if(String(row.year)===els.centuryFilter.value) button.classList.add('is-selected');
+      const amount=timelineMode==='raw'?`${nice(row.hits)} matches`:`${compactRate(row.rate)} / 10k`;
+      button.title=`${centuryLabel(row.year)} century: ${amount}`;
+      button.setAttribute('aria-label',button.title);
+      const valueLabel=document.createElement('span');valueLabel.className='timeline-value';valueLabel.textContent=timelineMode==='raw'?nice(row.hits):compactRate(row.rate);
+      const track=document.createElement('span');track.className='timeline-track';
+      const fill=document.createElement('span');fill.className='timeline-fill';fill.style.height=`${max?Math.max(3,value/max*100):0}%`;track.append(fill);
+      const label=document.createElement('span');label.className='timeline-label';label.textContent=centuryLabel(row.year);
+      button.append(valueLabel,track,label);
+      button.onclick=()=>{els.centuryFilter.value=String(row.year);updateFilterCount();runSearch(true);};
+      els.timelineChart.append(button);
+    }
+  }
+  async function tokenTermsForDoc(id) {
+    if(tokenCache.has(id)) return tokenCache.get(id);
+    const body=(await loadText(id)).body;
+    const terms=[...body.matchAll(TOKEN_RE)].map(m=>norm(m[0]));
+    tokenCache.set(id,terms);
+    return terms;
+  }
+  function sampleHits(hits,max=COLLOCATION_SAMPLE) {
+    if(hits.length<=max) return hits;
+    const out=[];
+    for(let i=0;i<max;i++) out.push(hits[Math.floor(i*hits.length/max)]);
+    return out;
+  }
+  async function renderCollocations(hits,ticket=activeSearch) {
+    els.collocationList.innerHTML='<span class="muted">Analysing nearby words\u2026</span>';
+    els.collocationNote.textContent='';
+    if(!hits.length) return;
+    const sample=sampleHits(hits), windowSize=Number(els.collocationWindow.value)||5;
+    const ids=[...new Set(sample.map(h=>h.doc))];
+    await Promise.all(ids.map(tokenTermsForDoc));
+    if(ticket!==activeSearch) return;
+    const counts=new Map();
+    const nodeForms=new Set(hits.map(h=>h.term));
+    for(const hit of sample){
+      const tokens=tokenCache.get(hit.doc)||[];
+      const span=Math.max(1,hit.phraseLength||1);
+      for(let i=Math.max(0,hit.token-windowSize);i<=Math.min(tokens.length-1,hit.token+span-1+windowSize);i++){
+        if(i>=hit.token && i<hit.token+span) continue;
+        const term=tokens[i];
+        if(!term || term.length<2 || nodeForms.has(term)) continue;
+        counts.set(term,(counts.get(term)||0)+1);
+      }
+    }
+    const lex=await getLexicon();
+    if(ticket!==activeSearch) return;
+    const corpusFreq=new Map(lex);
+    const scale=hits.length/sample.length;
+    const ranked=[...counts].map(([term,observed])=>{
+      const cooc=observed*scale, freqY=corpusFreq.get(term)||cooc;
+      const score=14+Math.log2((2*cooc)/(hits.length+freqY));
+      return {term,observed,score};
+    }).filter(x=>Number.isFinite(x.score)).sort((a,b)=>b.score-a.score||b.observed-a.observed||a.term.localeCompare(b.term)).slice(0,10);
+    els.collocationList.replaceChildren();
+    if(!ranked.length){els.collocationList.innerHTML='<span class="muted">No nearby-word pattern available.</span>';return;}
+    for(const item of ranked){
+      const span=document.createElement('span');span.className='collocation-chip';span.title=`logDice ${item.score.toFixed(2)}`;
+      span.innerHTML=`<strong>${escapeHtml(item.term)}</strong><small>${nice(Math.round(item.observed*scale))}</small>`;
+      els.collocationList.append(span);
+    }
+    const sampled=sample.length<hits.length?` · sampled ${nice(sample.length)} of ${nice(hits.length)} occurrences`:'';
+    els.collocationNote.textContent=`+/-${windowSize} words · ranked by logDice${sampled}`;
+  }
+  async function renderAnalysis(hits,ticket=activeSearch) {
+    els.analysisPanel.hidden=!hits.length;
+    if(!hits.length) return;
+    renderProfile(hits);renderTimeline(hits);
+    renderCollocations(hits,ticket).catch(()=>{if(ticket===activeSearch){els.collocationList.innerHTML='<span class="muted">Nearby-word analysis unavailable.</span>';}});
+  }
+  function kwicParts(body,hit) {
+    const matchedEnd=termEnd(body,hit), before=body.slice(Math.max(0,hit.char-500),hit.char), after=body.slice(matchedEnd,Math.min(body.length,matchedEnd+500));
+    const left=[...before.matchAll(TOKEN_RE)].slice(-7).map(m=>m[0]);
+    const right=[...after.matchAll(TOKEN_RE)].slice(0,7).map(m=>m[0]);
+    return {left,right,node:body.slice(hit.char,matchedEnd),l1:norm(left.at(-1)||''),l2:norm(left.at(-2)||''),r1:norm(right[0]||''),r2:norm(right[1]||'')};
+  }
+  async function orderedHitsForView(hits) {
+    if(els.resultView.value!=='kwic' || els.kwicSort.value==='corpus') return hits;
+    const ids=[...new Set(hits.map(h=>h.doc))], bodies=new Map();
+    await Promise.all(ids.map(async id=>bodies.set(id,(await loadText(id)).body)));
+    const key=els.kwicSort.value;
+    return [...hits].sort((a,b)=>{
+      const pa=kwicParts(bodies.get(a.doc),a), pb=kwicParts(bodies.get(b.doc),b);
+      return pa[key].localeCompare(pb[key]) || a.doc-b.doc || a.token-b.token;
+    });
+  }
+  async function renderKwic(page,startOrdinal) {
+    const ids=[...new Set(page.map(h=>h.doc))], bodies=new Map();
+    await Promise.all(ids.map(async id=>bodies.set(id,(await loadText(id)).body)));
+    els.results.replaceChildren();
+    const table=document.createElement('div');table.className='kwic-table';
+    let ordinal=startOrdinal;
+    for(const hit of page){
+      ordinal++;
+      const doc=manifest.documents[hit.doc], body=bodies.get(hit.doc), k=kwicParts(body,hit);
+      const row=document.createElement('div');row.className='kwic-row';
+      row.innerHTML=`<span class="kwic-number">${nice(ordinal)}</span><button type="button" class="kwic-source" title="${escapeHtml(doc.title)}">${escapeHtml(doc.code)}</button><span class="kwic-left">${escapeHtml(k.left.join(' '))}</span><mark class="kwic-node">${escapeHtml(k.node)}</mark><span class="kwic-right">${escapeHtml(k.right.join(' '))}</span><button type="button" class="hit-open">In text \u2192</button>`;
+      row.querySelector('.kwic-source').onclick=()=>searchOnlyText(hit.doc);
+      row.querySelector('.hit-open').onclick=()=>openText(hit.doc,hit.char,'text',termEnd(body,hit)-hit.char);
+      table.append(row);
+    }
+    els.results.append(table);
+  }
+  function editDistance(a,b,max=3) {
+    if(Math.abs(a.length-b.length)>max) return max+1;
+    let prev=Array.from({length:b.length+1},(_,i)=>i);
+    for(let i=1;i<=a.length;i++){
+      const cur=[i], min=Math.max(1,i-max), high=Math.min(b.length,i+max);
+      for(let j=1;j<=b.length;j++) cur[j]=j<min||j>high?max+1:Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      prev=cur;
+    }
+    return prev[b.length];
+  }
+  async function renderRescue(query) {
+    if(searchResult?.mode!=='word') return;
+    const forms=tokensOf(query);if(forms.length!==1) return;
+    const target=fold(forms[0]);if(!target) return;
+    const lex=await getLexicon();
+    const suggestions=[];
+    for(const [term,count] of lex){
+      const f=fold(term);if(!f||f===target||Math.abs(f.length-target.length)>2||f[0]!==target[0]) continue;
+      const d=editDistance(target,f,2);if(d<=2 || f.includes(target) || target.includes(f)) suggestions.push({term,count,d});
+    }
+    suggestions.sort((a,b)=>a.d-b.d||b.count-a.count||a.term.localeCompare(b.term));
+    if(!suggestions.length) return;
+    const box=document.createElement('div');box.className='search-rescue';box.innerHTML='<strong>Possible corpus forms</strong><div></div>';
+    const row=box.querySelector('div');
+    for(const item of suggestions.slice(0,8)){
+      const button=document.createElement('button');button.type='button';button.textContent=`${item.term} (${nice(item.count)})`;
+      button.onclick=()=>{els.query.value=item.term;els.modeSelect.value='word';runSearch(true);};row.append(button);
+    }
+    els.results.append(box);
   }
   function termEnd(body,hit) {
     if (!hit.phraseLength || hit.phraseLength===1) return hit.char+wordLength(body,hit.char);
@@ -349,22 +557,35 @@
   }
   async function renderResults(ticket=activeSearch) {
     if (!searchResult) return;
-    const all=displayedHits();
-    const total=all.length;
+    const base=displayedHits();
+    const ordered=await orderedHitsForView(base);
+    if(ticket!==activeSearch) return;
+    const total=ordered.length;
     const pages=Math.max(1,Math.ceil(total/pageSize()));
     currentPage=Math.min(Math.max(1,currentPage),pages);
-    const page=all.slice((currentPage-1)*pageSize(),currentPage*pageSize());
-    const docs=new Set(all.map(h=>h.doc)).size;
+    const page=ordered.slice((currentPage-1)*pageSize(),currentPage*pageSize());
+    const docs=new Set(base.map(h=>h.doc)).size;
+    const metrics=analysisMetrics(base);
     els.resultsControls.hidden=false;
-    els.resultHeading.textContent=`Results for “${searchResult.query}”`;
-    const capped=searchResult.capped?' · results limited':searchResult.truncatedTerms?' · form expansion limited':'';
-    setStatus(`${nice(total)} occurrence${total===1?'':'s'} in ${nice(docs)} text${docs===1?'':'s'}${capped}`);
-    els.resultStats.textContent=[['regex','wildcard','morph'].includes(searchResult.mode)?`${nice(searchResult.expanded)} indexed form${searchResult.expanded===1?'':'s'}`:'', `Page ${nice(currentPage)} of ${nice(pages)}`].filter(Boolean).join(' · ');
+    els.kwicSortLabel.hidden=els.resultView.value!=='kwic';
+    els.contextSize.closest('label').hidden=els.resultView.value==='kwic';
+    els.resultHeading.textContent=`Results for \u201c${searchResult.query}\u201d`;
+    const capped=searchResult.capped?' \u00b7 results limited':searchResult.truncatedTerms?' \u00b7 form expansion limited':'';
+    setStatus(`${nice(total)} occurrence${total===1?'':'s'} in ${nice(docs)} text${docs===1?'':'s'} \u00b7 ${compactRate(metrics.rate)} per 10k indexed words${capped}`);
+    els.resultStats.textContent=[['regex','wildcard','morph'].includes(searchResult.mode)?`${nice(searchResult.expanded)} indexed form${searchResult.expanded===1?'':'s'}`:'', `Page ${nice(currentPage)} of ${nice(pages)}`].filter(Boolean).join(' \u00b7 ');
     els.copySearchLink.disabled=false;els.exportCsv.disabled=!total;
-    renderDistribution(all);
+    renderDistribution(base);
+    await renderAnalysis(base,ticket);
     if (!total) {
+      els.analysisPanel.hidden=true;
       els.results.innerHTML='<div class="empty-state">No matches. Check the spelling, remove a filter, or try another search mode.</div>';
-      els.pagination.innerHTML='';return;
+      els.pagination.innerHTML='';
+      await renderRescue(searchResult.query);
+      return;
+    }
+    if(els.resultView.value==='kwic'){
+      await renderKwic(page,(currentPage-1)*pageSize());
+      renderPagination(pages);return;
     }
     await Promise.all([...new Set(page.map(h=>h.doc))].map(loadText));
     if (ticket!==activeSearch) return;
@@ -375,11 +596,12 @@
       groups.get(hit.doc).push(hit);
     }
     let ordinal=(currentPage-1)*pageSize();
-    const allCounts=new Map(sourceCounts(all));
+    const allCounts=new Map(sourceCounts(base));
     for (const [id,hits] of groups) {
-      const doc=manifest.documents[id], body=(await loadText(id)).body;
+      const doc=manifest.documents[id], body=(await loadText(id)).body, count=allCounts.get(id);
+      const docRate=per10k(count,doc.indexed_tokens||0);
       const section=document.createElement('section');section.className='result-group';
-      section.innerHTML=`<div class="result-group-head"><div><h3 class="source-title">${escapeHtml(doc.title)}</h3><p class="result-meta"><span class="result-code">${escapeHtml(doc.code)}</span>${[doc.dates,doc.provenance].filter(Boolean).map(v=>`<span>· ${escapeHtml(v)}</span>`).join('')}</p></div><span class="source-occur">${nice(allCounts.get(id))} match${allCounts.get(id)===1?'':'es'}</span></div><div class="source-actions"><button type="button" data-open>Read text</button><button type="button" data-limit>Only this text</button><button type="button" data-info>Metadata</button></div><ol class="hit-list"></ol>`;
+      section.innerHTML=`<div class="result-group-head"><div><h3 class="source-title">${escapeHtml(doc.title)}</h3><p class="result-meta"><span class="result-code">${escapeHtml(doc.code)}</span>${[doc.dates,doc.provenance].filter(Boolean).map(v=>`<span>\u00b7 ${escapeHtml(v)}</span>`).join('')}</p></div><span class="source-occur">${nice(count)} match${count===1?'':'es'} \u00b7 ${compactRate(docRate)} / 10k</span></div><div class="source-actions"><button type="button" data-open>Read text</button><button type="button" data-limit>Only this text</button><button type="button" data-info>Metadata</button></div><ol class="hit-list"></ol>`;
       section.querySelector('[data-open]').onclick=()=>openText(id);
       section.querySelector('[data-limit]').onclick=()=>searchOnlyText(id);
       section.querySelector('[data-info]').onclick=()=>openText(id,null,'metadata');
@@ -387,7 +609,7 @@
       for (const hit of hits) {
         ordinal++;
         const row=document.createElement('li');row.className='hit-row';
-        row.innerHTML=`<span class="hit-number">${nice(ordinal)}</span><div class="context-line">${contextMarkup(body,hit)}</div><button type="button" class="hit-open" aria-label="Read occurrence ${ordinal} in ${escapeHtml(doc.title)}">In text →</button>`;
+        row.innerHTML=`<span class="hit-number">${nice(ordinal)}</span><div class="context-line">${contextMarkup(body,hit)}</div><button type="button" class="hit-open" aria-label="Read occurrence ${ordinal} in ${escapeHtml(doc.title)}">In text \u2192</button>`;
         row.querySelector('.hit-open').onclick=()=>openText(id,hit.char,'text',termEnd(body,hit)-hit.char);
         list.append(row);
       }
@@ -440,6 +662,8 @@
     if(currentPage>1)q.set('page',String(currentPage));
     if(pageSize()!==PAGE_DEFAULT)q.set('per',String(pageSize()));
     if(els.contextSize.value!=='24')q.set('context',els.contextSize.value);
+    if(els.resultView.value!=='context')q.set('display',els.resultView.value);
+    if(els.resultView.value==='kwic' && els.kwicSort.value!=='corpus')q.set('kwic',els.kwicSort.value);
     return `${location.pathname}${q.toString()?'?'+q.toString():''}`;
   }
   function syncSearchUrl(push) {
@@ -458,6 +682,10 @@
     els.looseMatch.checked=p.get('loose')==='1';
     els.pageSizeSelect.value=['25','50','100'].includes(p.get('per'))?p.get('per'):'50';
     els.contextSize.value=['12','24','42'].includes(p.get('context'))?p.get('context'):'24';
+    els.resultView.value=p.get('display')==='kwic'?'kwic':'context';
+    els.kwicSort.value=['corpus','l1','l2','r1','r2'].includes(p.get('kwic'))?p.get('kwic'):'corpus';
+    els.kwicSortLabel.hidden=els.resultView.value!=='kwic';
+    els.contextSize.closest('label').hidden=els.resultView.value==='kwic';
     currentPage=Math.max(1,Math.floor(numeric(p.get('page'),1)));
     els.formFilter.replaceChildren(new Option('All forms',''));
     els.formFilter.value=p.get('form')||'';
@@ -492,6 +720,7 @@
         els.resultHeading.textContent='Ready to search';setStatus('');els.resultStats.textContent='';
         els.results.innerHTML='<div class="empty-state">Enter a word or expression above to search the full corpus.</div>';
         els.resultsControls.hidden=true;els.pagination.innerHTML='';
+        els.analysisPanel.hidden=true;
         els.distribution.innerHTML='<p class="muted">Search to see the distribution.</p>';
         els.copySearchLink.disabled=true;els.exportCsv.disabled=true;
       }
@@ -652,8 +881,13 @@
     let provenanceTimer;els.provenanceFilter.addEventListener('input',()=>{clearTimeout(provenanceTimer);provenanceTimer=setTimeout(onFilterUpdate,450);});
     els.clearFilters.addEventListener('click',()=>{els.textFilter.value='';els.centuryFilter.value='';els.provenanceFilter.value='';els.sortFilter.value='corpus';els.looseMatch.checked=false;els.formFilter.value='';onFilterUpdate();});
     els.formFilter.addEventListener('change',()=>{currentPage=1;syncSearchUrl(true);renderResults();});
+    els.resultView.addEventListener('change',()=>{currentPage=1;els.kwicSortLabel.hidden=els.resultView.value!=='kwic';els.contextSize.closest('label').hidden=els.resultView.value==='kwic';syncSearchUrl(true);renderResults();});
+    els.kwicSort.addEventListener('change',()=>{currentPage=1;syncSearchUrl(true);renderResults();});
     els.pageSizeSelect.addEventListener('change',()=>{currentPage=1;syncSearchUrl(true);renderResults();});
     els.contextSize.addEventListener('change',()=>{syncSearchUrl(true);renderResults();});
+    els.timelineRate.addEventListener('click',()=>{timelineMode='rate';els.timelineRate.classList.add('is-active');els.timelineRaw.classList.remove('is-active');if(searchResult)renderTimeline(displayedHits());});
+    els.timelineRaw.addEventListener('click',()=>{timelineMode='raw';els.timelineRaw.classList.add('is-active');els.timelineRate.classList.remove('is-active');if(searchResult)renderTimeline(displayedHits());});
+    els.collocationWindow.addEventListener('change',()=>{if(searchResult)renderCollocations(displayedHits(),activeSearch);});
     els.exportCsv.onclick=exportCSV;els.copySearchLink.onclick=()=>copyUrl(els.copySearchLink);
     els.showAllSources.onclick=()=>{allDistribution=!allDistribution;renderDistribution(displayedHits());};
     els.textBrowserSearch.addEventListener('input',renderTextCatalogue);els.textBrowserSort.addEventListener('change',renderTextCatalogue);
