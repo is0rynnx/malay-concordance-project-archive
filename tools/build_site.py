@@ -206,6 +206,8 @@ def main() -> None:
     }
     dump_json(OUT / "data" / "manifest.json", manifest)
     dump_json(OUT / "data" / "lexicon.json", [[term, count] for term, count in sorted(lexicon.items())])
+    from normalize_metadata import enrich_manifest
+    enrich_manifest(OUT)
     print(f"Built {len(docs)} documents, {total_tokens:,} indexed tokens, {len(lexicon):,} unique forms")
 
 

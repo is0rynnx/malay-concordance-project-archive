@@ -1,0 +1,900 @@
+{
+  "AA": {
+    "description": "A Malay Sufi treatise associated with Hamzah Fansuri and mystical knowledge.",
+    "title": "Asrār al-ʿĀrifīn",
+    "dates": [
+      "c. 1580",
+      "Manuscript: c. 1907"
+    ],
+    "origin": [
+      "Aceh",
+      "Manuscript later copied in Batavia"
+    ]
+  },
+  "Abd.C": {
+    "description": "Short prose narratives written by Abdullah bin Abdul Kadir Munsyi.",
+    "title": "Ceretera-Ceretera Karangan Abdullah",
+    "dates": [
+      "1843 and 1851",
+      "Different compositions"
+    ]
+  },
+  "Abd.H": {
+    "description": "Abdullah Munsyi's autobiographical account of nineteenth-century Malay society.",
+    "title": "Hikayat Abdullah bin Abdul Kadir",
+    "dates": [
+      "1842–1849",
+      "Revised in 1849"
+    ]
+  },
+  "Abd.PK": {
+    "description": "Abdullah Munsyi's account of his journey to Kelantan."
+  },
+  "Abd.PM": {
+    "description": "A travel narrative of Abdullah Munsyi's journey towards Mecca.",
+    "dates": [
+      "1854",
+      "Manuscript: undated (possibly c. 1860)"
+    ],
+    "origin": [
+      "Singapore to Mecca",
+      ""
+    ]
+  },
+  "Abd.S": {
+    "description": "A collection of verse compositions by Abdullah Munsyi.",
+    "title": "Syair-Syair Karangan Abdullah",
+    "dates": [
+      "1830 (KGT)",
+      "Print edition: 1847"
+    ]
+  },
+  "ABJD": {
+    "description": "A mythological narrative about the origins of jinn and deities.",
+    "title": "Cerita Asal Bangsa Jin",
+    "dates": [
+      "c. 1700",
+      "Manuscript: before 1851"
+    ],
+    "origin": [
+      "Bima",
+      "Manuscript origin unknown"
+    ]
+  },
+  "ABS": {
+    "description": "A courtly prose narrative centred on Ali Bad Syah.",
+    "dates": [
+      "Date uncertain",
+      "Manuscript: 1826"
+    ],
+    "origin": [
+      "Origin unknown",
+      "Manuscript copied in Batavia"
+    ]
+  },
+  "Aceh": {
+    "description": "A chronicle of the Acehnese court and its rulers.",
+    "dates": [
+      "c. 1600–1625",
+      "Manuscript: c. 1675–1700"
+    ],
+    "origin": [
+      "Aceh",
+      ""
+    ]
+  },
+  "AHmz": {
+    "description": "A Malay heroic romance about Amir Hamzah, uncle of the Prophet Muhammad.",
+    "dates": [
+      "Disputed early date",
+      "Estimates range from the 1380s to the sixteenth century"
+    ],
+    "origin": [
+      "Pasai, northern Sumatra",
+      ""
+    ]
+  },
+  "AN": {
+    "description": "A Malay exposition of al-Nasafi's Islamic creed.",
+    "title": "ʿAqāʾid al-Nasafī",
+    "dates": [
+      "c. 1590",
+      "Manuscript: before c. 1650"
+    ],
+    "origin": [
+      "Not established",
+      ""
+    ]
+  },
+  "Anb": {
+    "description": "Religious narratives concerning the prophets.",
+    "dates": [
+      "Eighteenth century",
+      "Manuscript: 1877"
+    ],
+    "origin": [
+      "Text origin unknown",
+      "Manuscript: Melaka"
+    ]
+  },
+  "ARM": {
+    "description": "A treatise on Malay royal customs, ceremonies and court protocol.",
+    "origin": [
+      "Melaka",
+      ""
+    ]
+  },
+  "Awai": {
+    "description": "A narrative syair associated with Raja Ali Haji of Riau."
+  },
+  "Bangka": {
+    "description": "A Malay prose account of the history and traditions of Bangka."
+  },
+  "Banj": {
+    "description": "A dynastic chronicle of Banjar in southern Kalimantan.",
+    "dates": [
+      "c. 1663 or later",
+      "Manuscript: nineteenth century"
+    ],
+    "origin": [
+      "South Kalimantan",
+      "Banjarmasin and Kotawaringin"
+    ]
+  },
+  "Banten": {
+    "description": "Letters and correspondence of the Banten sultanate.",
+    "dates": [
+      "1629–1819",
+      "Correspondence dated individually"
+    ],
+    "origin": [
+      "Banten and Batavia",
+      ""
+    ]
+  },
+  "Barus": {
+    "description": "A genealogy and history of the rulers of Barus in northwestern Sumatra."
+  },
+  "Bayan": {
+    "description": "A cycle of instructive tales narrated by a wise parrot.",
+    "title": "Hikayat Bayan Budiman",
+    "dates": [
+      "1371 (archival estimate)",
+      "Manuscripts: 1849 and 1852"
+    ],
+    "origin": [
+      "Not established",
+      "Manuscripts possibly from Singapore or Melaka"
+    ]
+  },
+  "BayB": {
+    "description": "A verse adaptation of the Bayan Budiman parrot tales."
+  },
+  "BBT": {
+    "description": "An early Malay stone inscription from Terengganu, concerning law and religion.",
+    "dates": [
+      "Dating disputed",
+      "Proposed dates include 1303, the 1320s and the 1380s"
+    ]
+  },
+  "Bid": {
+    "description": "A narrative poem recounting the adventures of Bidasari."
+  },
+  "Bik": {
+    "description": "A courtly adventure tale centred on Raja Bikrama Sakti."
+  },
+  "Bkht": {
+    "description": "A linked cycle of courtly stories associated with Bakhtiar.",
+    "dates": [
+      "c. 1650",
+      "Print edition: 1881"
+    ]
+  },
+  "BLR": {
+    "description": "A historical record from the Bima court tradition.",
+    "origin": [
+      "Bima",
+      ""
+    ]
+  },
+  "Boma": {
+    "description": "A Malay telling of the Boma story from the Indian epic tradition.",
+    "dates": [
+      "c. 1600",
+      "Manuscript: 1850"
+    ]
+  },
+  "BS": {
+    "description": "An encyclopaedic work on history, politics and religious learning at the Aceh court.",
+    "dates": [
+      "1638–1643",
+      ""
+    ],
+    "origin": [
+      "Aceh",
+      ""
+    ]
+  },
+  "BSK": {
+    "description": "Court history and administrative records of the Bima sultanate.",
+    "dates": [
+      "1645–1898",
+      "Multiple manuscript dates"
+    ],
+    "origin": [
+      "Bima",
+      ""
+    ]
+  },
+  "BT": {
+    "description": "A legal text on ta'zir, discretionary penalties in Islamic law."
+  },
+  "Buah": {
+    "description": "An allegorical syair using fruits as its characters."
+  },
+  "CJen": {
+    "description": "A collection of humorous Malay folk narratives from Perak."
+  },
+  "CPK": {
+    "description": "A historical account concerning Patani and Kelantan."
+  },
+  "Das": {
+    "description": "A narrative poem about Nyai Dasima."
+  },
+  "DBB": {
+    "description": "A didactic syair on trade, buying and selling."
+  },
+  "Dmsy.H": {
+    "description": "A prose narrative about Raja Damsyik."
+  },
+  "Dmsy.S": {
+    "description": "A verse narrative about Raja Damsyik."
+  },
+  "EPut": {
+    "description": "A narrative associated with Engku Puteri of Riau-Lingga."
+  },
+  "Fansur": {
+    "description": "Historical verse connected with the rulers of Barus."
+  },
+  "Farq": {
+    "description": "Official correspondence associated with William Farquhar in early Singapore.",
+    "origin": [
+      "Mainly Singapore",
+      ""
+    ]
+  },
+  "Gold": {
+    "description": "A collection of Malay royal and diplomatic letters.",
+    "origin": [
+      "Various locations",
+      ""
+    ]
+  },
+  "Guna": {
+    "description": "An advice manual addressed to men and women."
+  },
+  "HAR": {
+    "description": "A nineteenth-century religious work prepared in Mecca."
+  },
+  "Hemop": {
+    "description": "A historical syair composed in Batavia by a writer from Banjar."
+  },
+  "HF": {
+    "description": "A collection of Sufi verse attributed to Hamzah Fansuri.",
+    "title": "Syair Hamzah Fansuri",
+    "dates": [
+      "Late eighteenth century",
+      "Manuscript dates vary"
+    ],
+    "origin": [
+      "Aceh",
+      ""
+    ]
+  },
+  "Hitu": {
+    "description": "A historical account of Hitu and its communities on Ambon."
+  },
+  "HS": {
+    "description": "A religious polemic associated with Nuruddin al-Raniri of Aceh.",
+    "title": "Hujjat al-Siddiq li Dafʿ al-Zindiq",
+    "dates": [
+      "1641–1644",
+      "Manuscript: 1772"
+    ]
+  },
+  "Hsn": {
+    "description": "A historical narrative linked to Hasanuddin and Banten."
+  },
+  "Iblis": {
+    "description": "A religious tale centred on Iblis and moral instruction."
+  },
+  "IbrA.s": {
+    "description": "An abbreviated account of the Muslim ascetic Ibrahim ibn Adham."
+  },
+  "IbrA": {
+    "description": "A narrative of the life and spiritual renunciation of Ibrahim ibn Adham."
+  },
+  "Imam": {
+    "description": "Selections from the reformist Malay-language periodical published in Singapore.",
+    "origin": [
+      "Singapore",
+      "Contributions from Sumatra and Malaya"
+    ]
+  },
+  "IMTS": {
+    "description": "Selections from the Terengganu state constitution proclaimed in 1911.",
+    "title": "Itqan al-Muluk bi Taʿdil al-Suluk (excerpts)",
+    "dates": [
+      "1911",
+      "Terengganu constitution"
+    ],
+    "origin": [
+      "Terengganu",
+      ""
+    ]
+  },
+  "INata": {
+    "description": "A courtly adventure romance about Indera Nata."
+  },
+  "Ind": {
+    "description": "A fantastic adventure romance about the prince Indera Putera.",
+    "dates": [
+      "Before 1700",
+      "Manuscript date uncertain"
+    ]
+  },
+  "Isk": {
+    "description": "A Malay romance about Iskandar Zulkarnain, the Alexander figure.",
+    "dates": [
+      "Before 1600",
+      "Manuscript: c. 1830"
+    ]
+  },
+  "J&P": {
+    "description": "A historical narrative concerning Johor and Pahang.",
+    "origin": [
+      "Johor",
+      ""
+    ]
+  },
+  "JM": {
+    "description": "An Islamic religious treatise preserved in the Bima manuscript tradition.",
+    "title": "Jawharat al-Maʿārif"
+  },
+  "JPati": {
+    "description": "A courtly prose romance centred on Putera Jaya Pati."
+  },
+  "K&M": {
+    "description": "An allegorical poem featuring Kumbang and Melati."
+  },
+  "KBima": {
+    "description": "A verse account of the Bima kingdom and its rulers."
+  },
+  "Kel": {
+    "description": "Texts relating to the civil war in Kelantan in 1839.",
+    "dates": [
+      "1839",
+      ""
+    ],
+    "origin": [
+      "Kelantan",
+      ""
+    ]
+  },
+  "Kmt": {
+    "description": "A religious poem on the Last Judgement and the afterlife."
+  },
+  "Kosta": {
+    "description": "A popular Malay verse narrative about Sinyor Kosta.",
+    "dates": [
+      "Before 1821",
+      "Manuscript: 1862"
+    ],
+    "origin": [
+      "Palembang (attributed)",
+      "Manuscript from Palembang"
+    ]
+  },
+  "KS": {
+    "description": "Malay Bible passages from nineteenth- and twentieth-century editions.",
+    "title": "Kitab Suci",
+    "dates": [
+      "1879 and 1935",
+      "Different editions"
+    ],
+    "origin": [
+      "Not established",
+      ""
+    ]
+  },
+  "KT": {
+    "description": "A Malay verse romance of Ken Tambuhan from the Panji story tradition.",
+    "dates": [
+      "c. 1750",
+      "Manuscripts: 1791–1872"
+    ]
+  },
+  "KTS": {
+    "description": "A commemorative syair about a visit by Tengku Selangor.",
+    "dates": [
+      "Possibly 1829",
+      "Manuscript: 1829"
+    ],
+    "origin": [
+      "Riau",
+      ""
+    ]
+  },
+  "Kumb": {
+    "description": "An allegorical romance in verse centred on Kumbang Mengindera."
+  },
+  "Kupu": {
+    "description": "An allegorical poem about a butterfly, a flower and a grasshopper."
+  },
+  "Kutai": {
+    "description": "A dynastic history of Kutai in eastern Kalimantan."
+  },
+  "LKrm": {
+    "description": "A verse account of the 1883 Krakatau eruption and its effects on Lampung.",
+    "title": "Syair Lampung Karam",
+    "dates": [
+      "1883–1884",
+      "Print source: 1888"
+    ],
+    "origin": [
+      "Singapore",
+      ""
+    ]
+  },
+  "M&B": {
+    "description": "A genealogy tracing political and dynastic ties between Malay and Bugis rulers."
+  },
+  "M": {
+    "description": "Extracts from Majlis, a Malay-language newspaper of the 1930s.",
+    "origin": [
+      "Kuala Lumpur",
+      "Contributions from British Malaya"
+    ]
+  },
+  "Mar": {
+    "description": "A courtly adventure romance transmitted in the Batavia reading-library tradition."
+  },
+  "Maul": {
+    "description": "A historical syair concerning Sultan Maulana of Kedah."
+  },
+  "Mekah": {
+    "description": "Religious and travel-related verse associated with Mecca and Medina."
+  },
+  "MG": {
+    "description": "Selections from Majallah Guru, a periodical for Malay teachers.",
+    "origin": [
+      "Malay States and Straits Settlements",
+      ""
+    ]
+  },
+  "MH": {
+    "description": "A heroic narrative of Muhammad Hanafiah from the Persian-Islamic story tradition.",
+    "dates": [
+      "Late fourteenth or early fifteenth century (estimated)",
+      "Surviving manuscripts: late sixteenth to seventeenth centuries"
+    ],
+    "origin": [
+      "Pasai, northern Sumatra",
+      "Manuscripts associated with Aceh and Banten"
+    ]
+  },
+  "Minto": {
+    "description": "A colonial proclamation associated with Lord Minto and Batavia."
+  },
+  "Misa": {
+    "description": "A court chronicle of eighteenth-century Perak."
+  },
+  "Misk": {
+    "description": "A courtly adventure tale about Si Miskin, also known as Marakarma."
+  },
+  "MN": {
+    "description": "A religious work printed in Mecca for readers in Aceh."
+  },
+  "Mpt": {
+    "description": "A Batavian literary tale about two doves, one golden and one silver."
+  },
+  "MSiamB": {
+    "description": "A syair describing the arrival of the Siamese monarch in Batavia."
+  },
+  "Munt": {
+    "description": "A Sufi treatise attributed to Hamzah Fansuri."
+  },
+  "MW": {
+    "description": "A dynastic legend about the early rulers of Kedah."
+  },
+  "Mwr": {
+    "description": "An allegorical syair centred on the rose."
+  },
+  "NAsik": {
+    "description": "A Malay narrative from Batavia about Nakhoda Asik."
+  },
+  "NasTgn": {
+    "description": "A didactic or advisory syair associated with Terengganu."
+  },
+  "NJoh": {
+    "description": "A historical narrative concerning the state of Johor."
+  },
+  "NMuda": {
+    "description": "A maritime and merchant narrative centred on Nakhoda Muda."
+  },
+  "Nuri": {
+    "description": "An allegorical poem featuring a parrot and the simbangan bird."
+  },
+  "NurP": {
+    "description": "A poetic romance concerning Sultan Nur Peri."
+  },
+  "Nymk": {
+    "description": "An allegorical poem featuring a mosquito and a fly."
+  },
+  "Pah": {
+    "description": "Historical accounts of Pahang preserved in two versions.",
+    "dates": [
+      "1883 and 1932",
+      "Two versions"
+    ]
+  },
+  "PandL": {
+    "description": "A Malay retelling of the five Pandava brothers from the Mahabharata."
+  },
+  "Panji": {
+    "description": "A Panji romance about Kuda Semirang, adapted into Malay."
+  },
+  "Pasai": {
+    "description": "A chronicle of the early Muslim rulers of Samudera-Pasai."
+  },
+  "Pat": {
+    "description": "A dynastic history of the Patani court and its rulers."
+  },
+  "PBali": {
+    "description": "Treaties and agreements involving Balinese rulers and Dutch authorities."
+  },
+  "PBanj": {
+    "description": "Treaties between Banjar rulers and the Dutch colonial administration."
+  },
+  "Pel": {
+    "description": "A trickster fable featuring the clever mouse-deer."
+  },
+  "Perak": {
+    "description": "A genealogy of the Perak ruling dynasty."
+  },
+  "Perb": {
+    "description": "A narrative poem concerning Tengku Perbu.",
+    "dates": [
+      "1835",
+      "Manuscript: 1835"
+    ],
+    "origin": [
+      "Singapore",
+      "Manuscript: Melaka"
+    ]
+  },
+  "PG": {
+    "description": "A syair addressing salaries and the reduction of pay."
+  },
+  "PiagM": {
+    "description": "Charters and official documents from Muara Mendras in Jambi."
+  },
+  "PiagS": {
+    "description": "Charters and official documents from the Serampas highlands of Sumatra."
+  },
+  "PJ": {
+    "description": "A historical syair recounting conflict involving Johor."
+  },
+  "PK": {
+    "description": "A selection of nationalist Malay-language poems from the early twentieth century.",
+    "origin": [
+      "British Malaya, Singapore and Penang",
+      ""
+    ]
+  },
+  "PNB": {
+    "description": "A prose account concerning the government of Bengal."
+  },
+  "PPRiau": {
+    "description": "A personal record of a voyage to Riau."
+  },
+  "PRiau": {
+    "description": "Agreements and treaties between Riau rulers and Dutch authorities."
+  },
+  "PRO": {
+    "description": "Early Malay diplomatic letters preserved in British state archives.",
+    "origin": [
+      "Ternate and Banten",
+      ""
+    ]
+  },
+  "PSL": {
+    "description": "A syair describing a journey by the Sultan of Lingga."
+  },
+  "PTgn": {
+    "description": "The agreement between Terengganu and British authorities in 1910."
+  },
+  "Pung": {
+    "description": "An allegorical love poem centred on the pungguk bird."
+  },
+  "Puras": {
+    "description": "A Batavian literary romance about Purasara."
+  },
+  "Pwng": {
+    "description": "Letters and writings associated with Malay ritual specialists known as pawang."
+  },
+  "QB": {
+    "description": "A Malay rendering of the Arabic Burdah poem in praise of the Prophet Muhammad.",
+    "dates": [
+      "Malay translation: undated",
+      "Manuscript: before 1604"
+    ],
+    "origin": [
+      "Possibly Aceh",
+      ""
+    ]
+  },
+  "R": {
+    "description": "Extracts from religious writings associated with Nuruddin al-Raniri.",
+    "origin": [
+      "Aceh",
+      ""
+    ]
+  },
+  "Raksi": {
+    "description": "A syair transmitted in an early twentieth-century version from Riau."
+  },
+  "Rama": {
+    "description": "A Malay adaptation of the story of Rama from the Ramayana tradition."
+  },
+  "RIJ": {
+    "description": "A commemorative text associated with a British royal jubilee."
+  },
+  "RJoh": {
+    "description": "A historical syair concerning the rulers of Johor."
+  },
+  "RS": {
+    "description": "A religious tract associated with Shihabuddin of Palembang."
+  },
+  "RT": {
+    "description": "A short work on Islamic monotheism by Kemas Fakhruddin."
+  },
+  "S": {
+    "description": "Selections from Saudara, a Malay-language newspaper published in Penang.",
+    "origin": [
+      "Penang",
+      "Contributors across Malaya"
+    ]
+  },
+  "SA": {
+    "description": "A Sufi treatise on divine love attributed to Hamzah Fansuri.",
+    "title": "Sharāb al-ʿĀshiqīn"
+  },
+  "SAB": {
+    "description": "A commemorative syair on the late Sultan Abu Bakar of Johor."
+  },
+  "SBima": {
+    "description": "A Malay narrative about Sang Bima and the Bima court tradition."
+  },
+  "SBod": {
+    "description": "A didactic verse narrative about a foolish merchant."
+  },
+  "Siak": {
+    "description": "A chronicle of the Siak ruling dynasty."
+  },
+  "Sikka": {
+    "description": "A historical account of the Sikka kingdom on Flores."
+  },
+  "SITS": {
+    "description": "A dated memorandum by Tengku Said al-Qadri, written in April and May 1824."
+  },
+  "SJal": {
+    "description": "A written statement associated with Syeikh Jalaluddin of West Sumatra."
+  },
+  "SKel": {
+    "description": "A compiled history of Kelantan and its rulers.",
+    "dates": [
+      "1914",
+      "Earlier sources include a text from 1783"
+    ]
+  },
+  "SM": {
+    "description": "A Malay royal chronicle also known as Sulalat al-Salatin.",
+    "dates": [
+      "Redaction: 1612",
+      "Earlier textual history is uncertain"
+    ],
+    "origin": [
+      "Johor",
+      "Later manuscript: Singapore"
+    ]
+  },
+  "SMrdn": {
+    "description": "A literary romance about Syah Mardan."
+  },
+  "Srg": {
+    "description": "A religious syair on paradise and the afterlife."
+  },
+  "SRN": {
+    "description": "Illuminated correspondence between rulers of the Malay world and Dutch officials.",
+    "title": "Surat Beriluminasi Raja Nusantara",
+    "dates": [
+      "Eighteenth–nineteenth centuries",
+      "Dates vary by letter"
+    ],
+    "origin": [
+      "Various Malay courts",
+      ""
+    ]
+  },
+  "SSiti": {
+    "description": "A narrative syair associated with the Seratus Siti story tradition."
+  },
+  "ST": {
+    "description": "A collection of Sufi treatises associated with Pasai in northern Sumatra."
+  },
+  "Sunur": {
+    "description": "A nineteenth-century syair connected with Sunur and West Sumatra."
+  },
+  "SWB": {
+    "description": "Frederick de Houtman's early Malay-Dutch dialogues and vocabulary, published in 1603.",
+    "title": "Spraeck ende Woord-Boek",
+    "dates": [
+      "1603",
+      "Printed edition"
+    ],
+    "origin": [
+      "Aceh (setting)",
+      "Printed in Amsterdam"
+    ]
+  },
+  "T&K": {
+    "description": "A verse fable about a snake king and a frog king."
+  },
+  "TBarus": {
+    "description": "A local history and genealogy of Barus Hilir in western Sumatra."
+  },
+  "Tkbr": {
+    "description": "A religious work concerning the Islamic declaration of God's greatness."
+  },
+  "TM": {
+    "description": "A Malay translation and commentary on the Quran associated with Abd al-Rauf al-Singkili.",
+    "title": "Tarjumān al-Mustafīd",
+    "origin": [
+      "Aceh",
+      ""
+    ]
+  },
+  "TN": {
+    "description": "A nineteenth-century history of Malay and Bugis rulers in Riau-Lingga.",
+    "dates": [
+      "1866",
+      "Manuscript: 1890"
+    ],
+    "origin": [
+      "Penyengat, Riau",
+      "Manuscript copied in Kuala Lumpur"
+    ]
+  },
+  "TS.K": {
+    "description": "A guide to ethics and kingship from the Taj al-Salatin tradition, in Khalid's edition.",
+    "title": "Tāj al-Salātīn (Khalid edition)",
+    "dates": [
+      "c. 1603",
+      "Manuscript: probably late eighteenth century"
+    ]
+  },
+  "TS.R": {
+    "description": "A guide to ethics and kingship from the Taj al-Salatin tradition, in Roorda's edition.",
+    "title": "Tāj al-Salātīn (Roorda edition)",
+    "dates": [
+      "1602",
+      ""
+    ]
+  },
+  "Tuah": {
+    "description": "An epic romance about Hang Tuah and his fellow Malay warriors."
+  },
+  "TW": {
+    "description": "An abbreviated historical writing dated to 1854."
+  },
+  "TZA": {
+    "description": "A commemorative syair concerning Sultan Zainal Abidin III of Terengganu."
+  },
+  "UKJ": {
+    "description": "An address marking a British royal jubilee."
+  },
+  "Ungg": {
+    "description": "An allegorical dialogue poem in which birds exchange questions and answers."
+  },
+  "UU": {
+    "description": "A Malay legal code associated with the Melaka sultanate.",
+    "dates": [
+      "Fifteenth to eighteenth centuries",
+      "Manuscripts: nineteenth century"
+    ],
+    "origin": [
+      "Melaka and Johor",
+      "Manuscripts circulated widely"
+    ]
+  },
+  "VdW": {
+    "description": "A collection of nineteenth-century letters associated with H. von de Wall in Riau."
+  },
+  "VN": {
+    "description": "A selection of editorials from Malay-language newspapers, 1877 to 1935.",
+    "origin": [
+      "Singapore and Malay States",
+      ""
+    ]
+  },
+  "Wangk": {
+    "description": "A syair recounting the conflict known as Perang Wangkang."
+  },
+  "WBima": {
+    "description": "Correspondence associated with the Bima sultanate.",
+    "origin": [
+      "Bima",
+      ""
+    ]
+  },
+  "WBrn": {
+    "description": "Letters associated with Brunei and Singapore in the early nineteenth century.",
+    "origin": [
+      "Brunei and Singapore",
+      ""
+    ]
+  },
+  "WButon": {
+    "description": "Official correspondence associated with the Buton court in Sulawesi.",
+    "origin": [
+      "Buton, Sulawesi",
+      ""
+    ]
+  },
+  "WHaji": {
+    "description": "A didactic text by a religious official from Karawang in western Java."
+  },
+  "WM": {
+    "description": "Selections from Warta Malaya, a Malay-language newspaper of the 1930s."
+  },
+  "Wrkh": {
+    "description": "An anthology of Malay royal and diplomatic letters from 1521 to 1899.",
+    "title": "Warisan Warkah Melayu",
+    "origin": [
+      "Various locations",
+      ""
+    ]
+  },
+  "Ws": {
+    "description": "A nineteenth-century Malay printed work from the Riau-Batavia milieu.",
+    "dates": [
+      "1852",
+      "Print source: 1853"
+    ]
+  },
+  "WSln": {
+    "description": "Letters from Ceylon, now Sri Lanka, dated 1792, 1806 and 1807.",
+    "origin": [
+      "Colombo, Sri Lanka",
+      ""
+    ]
+  },
+  "WSumB": {
+    "description": "Malay correspondence from West Sumatra, dated 1793 to 1795.",
+    "origin": [
+      "West Sumatra",
+      ""
+    ]
+  },
+  "WTgn": {
+    "description": "A collection of letters from Terengganu, dating from around 1900 to 1928.",
+    "origin": [
+      "Terengganu",
+      ""
+    ]
+  },
+  "Zub": {
+    "description": "A romantic narrative syair about Siti Zubaidah."
+  }
+}

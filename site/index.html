@@ -74,20 +74,19 @@
               </div>
             </div>
 
-            <!-- Experimental integrated analysis - core concordance layer -->
             <section id="analysisPanel" class="analysis-panel" hidden aria-label="Search analysis">
               <p id="profileLine" class="profile-line"></p>
               <div class="analysis-grid">
                 <section class="analysis-block timeline-block" aria-labelledby="timelineHeading">
                   <div class="analysis-head">
-                    <h3 id="timelineHeading">Usage over time</h3>
+                    <h3 id="timelineHeading">Usage by century</h3>
                     <div class="analysis-toggle" role="group" aria-label="Timeline measure">
                       <button type="button" id="timelineRate" class="is-active">per 10k</button>
                       <button type="button" id="timelineRaw">raw</button>
                     </div>
                   </div>
                   <div id="timelineChart" class="timeline-chart"></div>
-                  <p class="analysis-note">Dated by the earliest year recorded for each text in the archive.</p>
+                  <p class="analysis-note">Includes texts assigned to a single century. Undated and multi-century sources are excluded.</p>
                 </section>
                 <section class="analysis-block collocation-block" aria-labelledby="collocationHeading">
                   <div class="analysis-head">
@@ -171,7 +170,7 @@
                 <select id="sortFilter">
                   <option value="corpus">Corpus order</option>
                   <option value="text">Text title</option>
-                  <option value="date">Earliest recorded date</option>
+                  <option value="date">Earliest documented date</option>
                   <option value="count">Most matches by text</option>
                 </select>
               </label>
@@ -253,21 +252,21 @@
         <h2>Working with results</h2>
         <p>Filter by source or period, select a matched spelling, and change the amount of context. Results are grouped by text. Open an occurrence to read the surrounding passage, or export matches as CSV.</p>
         <h2>Source dates</h2>
-        <p>Dates in the corpus describe different things, including compositions, manuscripts and editions. The period filter uses the earliest year recorded in the archival date field. Consult each text’s metadata before interpreting a date as evidence of language use.</p>
+        <p>Composition, manuscript and publication dates are recorded separately. Century filters include only texts assignable to a single century. When an original date is uncertain, the surviving witness may provide the earliest documented evidence.</p>
       </div>
     </section>
     <section id="aboutView" class="view" aria-labelledby="aboutHeading">
       <div class="page-shell narrow-shell prose">
         <h1 id="aboutHeading">About the corpus</h1>
-        <p>Malay Concordance provides full-text search across the transcriptions preserved in the <a href="https://github.com/is0rynnx/malay-concordance-project-archive" target="_blank" rel="noopener noreferrer">Malay Concordance Project archive</a>.</p>
+        <p>Malay Concordance provides full-text search across the archived Malay text transcriptions.</p>
         <p>Bibliographic information, editorial notes, and original transcriptions are retained with each text. Search indexes are generated separately; they do not modify the source files.</p>
         <h2>Reading the evidence</h2>
         <p>The corpus spans different periods, regions, genres, manuscript traditions, and editorial practices. A match refers to a particular archived transcription, not necessarily an original manuscript spelling or a securely dated spoken form. Check the accompanying metadata for each source.</p>
-        <p>Source repository: <a href="https://github.com/is0rynnx/malay-concordance-project-archive" target="_blank" rel="noopener noreferrer">malay-concordance-project-archive</a></p>
+        <p>The website and corpus data are available on <a href="https://github.com/malaycorpus/malaycorpus.github.io" target="_blank" rel="noopener noreferrer">GitHub</a></p>
       </div>
     </section>
   </main>
-  <footer class="site-footer"><div class="footer-inner"><span>Malay Concordance</span><a class="footer-source" href="https://github.com/is0rynnx/malay-concordance-project-archive" target="_blank" rel="noopener noreferrer" aria-label="Source archive on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.47.11-3.04 0 0 .97-.31 3.16 1.17A11 11 0 0 1 12 6.12c.98 0 1.94.13 2.85.38 2.2-1.48 3.16-1.17 3.16-1.17.63 1.57.23 2.75.11 3.04.74.8 1.19 1.82 1.19 3.08 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.28c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg><span>Source archive</span><span class="external-arrow" aria-hidden="true">&#8599;</span></a></div></footer>
+  <footer class="site-footer"><div class="footer-inner"><span>Malay Concordance</span></div></footer>
   <noscript>JavaScript is required to search the corpus.</noscript>
   <script src="app.js" defer></script>
 </body>

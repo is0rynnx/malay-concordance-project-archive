@@ -100,16 +100,23 @@
     for (const hits of map.values()) hits.sort((a,b) => a.token-b.token || a.char-b.char);
     return map;
   }
+  function recordYear(d) {
+    return Number.isFinite(d.chronology_year) ? d.chronology_year : null;
+  }
+  function recordDate(d) { return d.display_date || d.dates || 'Date not established'; }
+  function recordOrigin(d) { return d.display_origin || d.provenance || 'Not established'; }
+  function dateEligible(d) { return d.period_eligible === true && recordYear(d) !== null; }
+  function documentRate(n,d) { return d.indexed_tokens ? n * 10000 / d.indexed_tokens : 0; }
   function permittedDoc(id) {
     const d = manifest.documents[id];
     const selected = els.textFilter.value;
     if (selected !== '' && Number(selected) !== id) return false;
     if (els.centuryFilter.value) {
       const start = +els.centuryFilter.value;
-      if (!d.year_min || d.year_min < start || d.year_min >= start+100) return false;
+      if (!dateEligible(d) || recordYear(d) < start || recordYear(d) >= start+100) return false;
     }
     const origin = norm(els.provenanceFilter.value.trim());
-    if (origin && !norm(d.provenance).includes(origin)) return false;
+    if (origin && !norm(recordOrigin(d)).includes(origin)) return false;
     return true;
   }
   function finalise(rawHits, expanded=1, truncatedTerms=false) {
@@ -119,7 +126,7 @@
     const sort = els.sortFilter.value;
     filtered.sort((a,b) => {
       if (sort === 'text') return manifest.documents[a.doc].title.localeCompare(manifest.documents[b.doc].title) || a.token-b.token;
-      if (sort === 'date') return (manifest.documents[a.doc].year_min||9999)-(manifest.documents[b.doc].year_min||9999) || a.doc-b.doc || a.token-b.token;
+      if (sort === 'date') return (recordYear(manifest.documents[a.doc]) ?? 9999)-(recordYear(manifest.documents[b.doc]) ?? 9999) || a.doc-b.doc || a.token-b.token;
       if (sort === 'count') return (perDoc.get(b.doc)||0)-(perDoc.get(a.doc)||0) || a.doc-b.doc || a.token-b.token;
       return a.doc-b.doc || a.token-b.token;
     });
@@ -287,145 +294,143 @@
     return [...map].sort((a,b)=>b[1]-a[1] || manifest.documents[a[0]].title.localeCompare(manifest.documents[b[0]].title));
   }
 
-  function eligibleDocuments(ignoreCentury=false) {
+  function eligibleDocuments() {
     return manifest.documents.filter((d,id) => {
-      const selected=els.textFilter.value;
-      if(selected!=='' && Number(selected)!==id) return false;
-      if(!ignoreCentury && els.centuryFilter.value){
-        const start=Number(els.centuryFilter.value);
-        if(!d.year_min || d.year_min<start || d.year_min>=start+100) return false;
+      if(els.textFilter.value!=='' && Number(els.textFilter.value)!==id) return false;
+      if(els.centuryFilter.value){
+        const year=Number(els.centuryFilter.value);
+        if(!dateEligible(d) || recordYear(d)<year || recordYear(d)>=year+100) return false;
       }
-      const origin=norm(els.provenanceFilter.value.trim());
-      if(origin && !norm(d.provenance).includes(origin)) return false;
+      const place=norm(els.provenanceFilter.value.trim());
+      if(place && !norm(recordOrigin(d)).includes(place)) return false;
       return true;
     });
   }
-  function per10k(count, words) { return words ? count / words * 10000 : 0; }
-  function compactRate(value) { return value>=10 ? value.toFixed(1) : value>=1 ? value.toFixed(2) : value.toFixed(3); }
+  function per10k(count,words) { return words>0 ? count*10000/words : 0; }
+  function compactRate(value) { return value>=10?value.toFixed(1):value>=1?value.toFixed(2):value.toFixed(3); }
   function analysisMetrics(hits) {
     const scope=eligibleDocuments();
     const words=scope.reduce((n,d)=>n+(d.indexed_tokens||0),0);
-    const matchingDocs=[...new Set(hits.map(h=>h.doc))];
-    const dated=matchingDocs.map(id=>manifest.documents[id]).filter(d=>d.year_min);
+    const ids=[...new Set(hits.map(h=>h.doc))];
+    const years=ids.map(i=>recordYear(manifest.documents[i])).filter(y=>y!==null);
     const counts=sourceCounts(hits);
-    return {
-      words,
-      rate:per10k(hits.length,words),
-      scopeDocs:scope.length,
-      matchingDocs:matchingDocs.length,
-      earliest:dated.length?Math.min(...dated.map(d=>d.year_min)):null,
-      latest:dated.length?Math.max(...dated.map(d=>d.year_min)):null,
-      topShare:hits.length&&counts.length?counts[0][1]/hits.length*100:0
-    };
+    return {words,rate:per10k(hits.length,words),scopeDocs:scope.length,matchingDocs:ids.length,
+      earliest:years.length?Math.min(...years):null,
+      topShare:hits.length&&counts.length?counts[0][1]*100/hits.length:0};
   }
   function renderProfile(hits) {
-    const m=analysisMetrics(hits);
-    const parts=[`${compactRate(m.rate)} per 10k indexed words`,`${nice(m.matchingDocs)} of ${nice(m.scopeDocs)} texts`];
-    if(m.earliest!==null) parts.push(`dated sources ${m.earliest}\u2013${m.latest}`);
-    if(hits.length>1) parts.push(`largest source ${m.topShare.toFixed(1)}% of matches`);
-    els.profileLine.textContent=parts.join(' \u00b7 ');
+    const m=analysisMetrics(hits),partial=searchResult?.capped;
+    const parts=[`${nice(m.matchingDocs)} of ${nice(m.scopeDocs)} texts`];
+    if(!partial) parts.push(`${compactRate(m.rate)} per 10,000 words`);
+    if(m.earliest!==null) parts.push(`earliest source ${m.earliest}`);
+    if(partial) parts.push('Result limit reached');
+    els.profileLine.textContent=parts.join(' | ');
   }
   function timelineBuckets(hits) {
-    const hitCounts=new Map();
-    for(const h of hits){
-      const d=manifest.documents[h.doc];
-      if(!d.year_min) continue;
-      const century=Math.floor(d.year_min/100)*100;
-      hitCounts.set(century,(hitCounts.get(century)||0)+1);
-    }
-    const wordCounts=new Map();
+    const hitCounts=new Map(),wordCounts=new Map();
     for(const d of eligibleDocuments()){
-      if(!d.year_min) continue;
-      const century=Math.floor(d.year_min/100)*100;
+      if(!dateEligible(d)) continue;
+      const century=Math.floor(recordYear(d)/100)*100;
       wordCounts.set(century,(wordCounts.get(century)||0)+(d.indexed_tokens||0));
     }
-    const years=[...new Set([...hitCounts.keys(),...wordCounts.keys()])].sort((a,b)=>a-b);
-    return years.map(year=>({year,hits:hitCounts.get(year)||0,words:wordCounts.get(year)||0,rate:per10k(hitCounts.get(year)||0,wordCounts.get(year)||0)}));
+    for(const h of hits){
+      const d=manifest.documents[h.doc];
+      if(!dateEligible(d)) continue;
+      const century=Math.floor(recordYear(d)/100)*100;
+      hitCounts.set(century,(hitCounts.get(century)||0)+1);
+    }
+    return [...wordCounts.keys()].sort((a,b)=>a-b).map(year=>({year,hits:hitCounts.get(year)||0,words:wordCounts.get(year)||0,
+      rate:per10k(hitCounts.get(year)||0,wordCounts.get(year)||0)}));
   }
-  function centuryLabel(year){
-    const n=Math.floor(year/100)+1;
-    const suffix=n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th';
-    return `${n}${suffix}`;
-  }
+  function centuryLabel(year){return `${Math.floor(year/100)+1}th`;}
   function renderTimeline(hits) {
-    const rows=timelineBuckets(hits);
     els.timelineChart.replaceChildren();
-    if(!rows.length){els.timelineChart.innerHTML='<span class="muted">No dated results in the current scope.</span>';return;}
-    const values=rows.map(r=>timelineMode==='raw'?r.hits:r.rate);
-    const max=Math.max(...values,0);
+    if(searchResult?.capped){els.timelineChart.textContent='Period analysis is unavailable for limited results.';return;}
+    const rows=timelineBuckets(hits);
+    if(!rows.length){els.timelineChart.textContent='No texts in this selection can be assigned to one century.';return;}
+    const values=rows.map(r=>timelineMode==='raw'?r.hits:r.rate),max=Math.max(...values,0);
     for(const row of rows){
       const value=timelineMode==='raw'?row.hits:row.rate;
-      const button=document.createElement('button');button.type='button';button.className='timeline-item';
-      if(String(row.year)===els.centuryFilter.value) button.classList.add('is-selected');
-      const amount=timelineMode==='raw'?`${nice(row.hits)} matches`:`${compactRate(row.rate)} / 10k`;
-      button.title=`${centuryLabel(row.year)} century: ${amount}`;
-      button.setAttribute('aria-label',button.title);
-      const valueLabel=document.createElement('span');valueLabel.className='timeline-value';valueLabel.textContent=timelineMode==='raw'?nice(row.hits):compactRate(row.rate);
+      const item=document.createElement('button');item.type='button';item.className='timeline-item';
+      if(String(row.year)===els.centuryFilter.value)item.classList.add('is-selected');
+      const amount=timelineMode==='raw'?`${nice(row.hits)} occurrences`:`${compactRate(row.rate)} per 10,000 words`;
+      item.title=`${row.year}-${row.year+99}: ${amount}`;item.setAttribute('aria-label',item.title);
+      const n=document.createElement('span');n.className='timeline-value';n.textContent=timelineMode==='raw'?nice(row.hits):compactRate(row.rate);
       const track=document.createElement('span');track.className='timeline-track';
       const fill=document.createElement('span');fill.className='timeline-fill';fill.style.height=`${max?Math.max(3,value/max*100):0}%`;track.append(fill);
       const label=document.createElement('span');label.className='timeline-label';label.textContent=centuryLabel(row.year);
-      button.append(valueLabel,track,label);
-      button.onclick=()=>{els.centuryFilter.value=String(row.year);updateFilterCount();runSearch(true);};
-      els.timelineChart.append(button);
+      item.append(n,track,label);
+      item.onclick=()=>{els.centuryFilter.value=els.centuryFilter.value===String(row.year)?'':String(row.year);updateFilterCount();runSearch(true);};
+      els.timelineChart.append(item);
     }
   }
   async function tokenTermsForDoc(id) {
-    if(tokenCache.has(id)) return tokenCache.get(id);
+    if(tokenCache.has(id))return tokenCache.get(id);
     const body=(await loadText(id)).body;
     const terms=[...body.matchAll(TOKEN_RE)].map(m=>norm(m[0]));
     tokenCache.set(id,terms);
     return terms;
   }
-  function sampleHits(hits,max=COLLOCATION_SAMPLE) {
-    if(hits.length<=max) return hits;
-    const out=[];
-    for(let i=0;i<max;i++) out.push(hits[Math.floor(i*hits.length/max)]);
-    return out;
+  function sampleHits(hits,max=4000) {
+    if(hits.length<=max)return hits;
+    return Array.from({length:max},(_,i)=>hits[Math.floor((i+.5)*hits.length/max)]);
+  }
+  function collocationIsExact(sampleCount,hitCount) {
+    return sampleCount===hitCount && !searchResult.capped && !searchResult.truncatedTerms &&
+      searchResult.mode==='word' && tokensOf(searchResult.query).length===1 &&
+      !els.looseMatch.checked && !els.textFilter.value && !els.centuryFilter.value &&
+      !els.provenanceFilter.value.trim() && !els.formFilter.value;
   }
   async function renderCollocations(hits,ticket=activeSearch) {
-    els.collocationList.innerHTML='<span class="muted">Analysing nearby words\u2026</span>';
+    els.collocationList.textContent='Analysing nearby words';
     els.collocationNote.textContent='';
-    if(!hits.length) return;
-    const sample=sampleHits(hits), windowSize=Number(els.collocationWindow.value)||5;
+    if(!hits.length){els.collocationList.textContent='No occurrences in this selection.';return;}
+    const sample=sampleHits(hits),windowSize=Number(els.collocationWindow.value)||5;
     const ids=[...new Set(sample.map(h=>h.doc))];
     await Promise.all(ids.map(tokenTermsForDoc));
-    if(ticket!==activeSearch) return;
+    if(ticket!==activeSearch)return;
     const counts=new Map();
-    const nodeForms=new Set(hits.map(h=>h.term));
+    const nodes=new Set(hits.map(h=>h.term));
     for(const hit of sample){
-      const tokens=tokenCache.get(hit.doc)||[];
-      const span=Math.max(1,hit.phraseLength||1);
-      for(let i=Math.max(0,hit.token-windowSize);i<=Math.min(tokens.length-1,hit.token+span-1+windowSize);i++){
-        if(i>=hit.token && i<hit.token+span) continue;
+      const tokens=tokenCache.get(hit.doc)||[],span=Math.max(1,hit.phraseLength||1);
+      const near=new Set();
+      const lo=Math.max(0,hit.token-windowSize),hi=Math.min(tokens.length-1,hit.token+span-1+windowSize);
+      for(let i=lo;i<=hi;i++){
+        if(i>=hit.token&&i<hit.token+span)continue;
         const term=tokens[i];
-        if(!term || term.length<2 || nodeForms.has(term)) continue;
-        counts.set(term,(counts.get(term)||0)+1);
+        if(term && term.length>1 && !nodes.has(term))near.add(term);
       }
+      for(const term of near)counts.set(term,(counts.get(term)||0)+1);
     }
-    const lex=await getLexicon();
-    if(ticket!==activeSearch) return;
-    const corpusFreq=new Map(lex);
-    const scale=hits.length/sample.length;
-    const ranked=[...counts].map(([term,observed])=>{
-      const cooc=observed*scale, freqY=corpusFreq.get(term)||cooc;
-      const score=14+Math.log2((2*cooc)/(hits.length+freqY));
-      return {term,observed,score};
-    }).filter(x=>Number.isFinite(x.score)).sort((a,b)=>b.score-a.score||b.observed-a.observed||a.term.localeCompare(b.term)).slice(0,10);
+    const exact=collocationIsExact(sample.length,hits.length);
+    const freq=exact?new Map(await getLexicon()):null;
+    if(ticket!==activeSearch)return;
+    const ranked=[...counts].map(([term,count])=>{
+      const score=exact?14+Math.log2(2*count/(hits.length+(freq.get(term)||0))):null;
+      return {term,count,score};
+    }).filter(r=>r.score===null||Number.isFinite(r.score))
+      .sort((a,b)=>exact?(b.score-a.score||b.count-a.count||a.term.localeCompare(b.term)):(b.count-a.count||a.term.localeCompare(b.term)))
+      .slice(0,12);
     els.collocationList.replaceChildren();
-    if(!ranked.length){els.collocationList.innerHTML='<span class="muted">No nearby-word pattern available.</span>';return;}
+    if(!ranked.length){els.collocationList.textContent='No nearby words found.';return;}
     for(const item of ranked){
-      const span=document.createElement('span');span.className='collocation-chip';span.title=`logDice ${item.score.toFixed(2)}`;
-      span.innerHTML=`<strong>${escapeHtml(item.term)}</strong><small>${nice(Math.round(item.observed*scale))}</small>`;
-      els.collocationList.append(span);
+      const button=document.createElement('button');button.type='button';button.className='collocation-chip';
+      button.title=`Search for ${item.term}${item.score===null?'':`, logDice ${item.score.toFixed(2)}`}`;
+      const term=document.createElement('strong');term.textContent=item.term;
+      const number=document.createElement('small');number.textContent=nice(item.count);
+      button.append(term,number);
+      button.onclick=()=>{els.query.value=item.term;els.modeSelect.value='word';runSearch(true);};
+      els.collocationList.append(button);
     }
-    const sampled=sample.length<hits.length?` · sampled ${nice(sample.length)} of ${nice(hits.length)} occurrences`:'';
-    els.collocationNote.textContent=`+/-${windowSize} words · ranked by logDice${sampled}`;
+    const method=exact?'Ranked by logDice':'Ranked by co-occurrence count';
+    const sampleLabel=sample.length<hits.length?` | ${nice(sample.length)} of ${nice(hits.length)} occurrences sampled`:'';
+    els.collocationNote.textContent=`Within ${windowSize} words | ${method}${sampleLabel}`;
   }
-  async function renderAnalysis(hits,ticket=activeSearch) {
+  function renderAnalysis(hits,ticket=activeSearch) {
     els.analysisPanel.hidden=!hits.length;
-    if(!hits.length) return;
+    if(!hits.length)return;
     renderProfile(hits);renderTimeline(hits);
-    renderCollocations(hits,ticket).catch(()=>{if(ticket===activeSearch){els.collocationList.innerHTML='<span class="muted">Nearby-word analysis unavailable.</span>';}});
+    renderCollocations(hits,ticket).catch(()=>{if(ticket===activeSearch)els.collocationList.textContent='Nearby-word analysis unavailable.';});
   }
   function kwicParts(body,hit) {
     const matchedEnd=termEnd(body,hit), before=body.slice(Math.max(0,hit.char-500),hit.char), after=body.slice(matchedEnd,Math.min(body.length,matchedEnd+500));
@@ -434,14 +439,13 @@
     return {left,right,node:body.slice(hit.char,matchedEnd),l1:norm(left.at(-1)||''),l2:norm(left.at(-2)||''),r1:norm(right[0]||''),r2:norm(right[1]||'')};
   }
   async function orderedHitsForView(hits) {
-    if(els.resultView.value!=='kwic' || els.kwicSort.value==='corpus') return hits;
-    const ids=[...new Set(hits.map(h=>h.doc))], bodies=new Map();
+    if(els.resultView.value!=='kwic'||els.kwicSort.value==='corpus')return hits;
+    const ids=[...new Set(hits.map(h=>h.doc))],bodies=new Map();
     await Promise.all(ids.map(async id=>bodies.set(id,(await loadText(id)).body)));
-    const key=els.kwicSort.value;
-    return [...hits].sort((a,b)=>{
-      const pa=kwicParts(bodies.get(a.doc),a), pb=kwicParts(bodies.get(b.doc),b);
-      return pa[key].localeCompare(pb[key]) || a.doc-b.doc || a.token-b.token;
-    });
+    const position=els.kwicSort.value;
+    const keyed=hits.map((hit,i)=>({hit,i,value:kwicParts(bodies.get(hit.doc),hit)[position]}));
+    keyed.sort((a,b)=>a.value.localeCompare(b.value)||a.hit.doc-b.hit.doc||a.hit.token-b.hit.token||a.i-b.i);
+    return keyed.map(x=>x.hit);
   }
   async function renderKwic(page,startOrdinal) {
     const ids=[...new Set(page.map(h=>h.doc))], bodies=new Map();
@@ -547,7 +551,7 @@
     for (const [docId, count] of shown) {
       const doc=manifest.documents[docId];
       const row=document.createElement('div');row.className='distribution-row';
-      const button=document.createElement('button');button.type='button';button.textContent=`${doc.code} · ${doc.title}`;
+      const button=document.createElement('button');button.type='button';button.textContent=`${doc.code} , ${doc.title}`;
       button.title=`Show matches in ${doc.title}`;button.onclick=()=>searchOnlyText(docId);
       const value=document.createElement('span');value.className='distribution-count';value.textContent=nice(count);
       row.append(button,value);els.distribution.append(row);
@@ -570,12 +574,12 @@
     els.kwicSortLabel.hidden=els.resultView.value!=='kwic';
     els.contextSize.closest('label').hidden=els.resultView.value==='kwic';
     els.resultHeading.textContent=`Results for \u201c${searchResult.query}\u201d`;
-    const capped=searchResult.capped?' \u00b7 results limited':searchResult.truncatedTerms?' \u00b7 form expansion limited':'';
-    setStatus(`${nice(total)} occurrence${total===1?'':'s'} in ${nice(docs)} text${docs===1?'':'s'} \u00b7 ${compactRate(metrics.rate)} per 10k indexed words${capped}`);
-    els.resultStats.textContent=[['regex','wildcard','morph'].includes(searchResult.mode)?`${nice(searchResult.expanded)} indexed form${searchResult.expanded===1?'':'s'}`:'', `Page ${nice(currentPage)} of ${nice(pages)}`].filter(Boolean).join(' \u00b7 ');
+    const capped=searchResult.capped?', results limited':searchResult.truncatedTerms?', form expansion limited':'';
+    setStatus(`${nice(total)} occurrence${total===1?'':'s'} in ${nice(docs)} text${docs===1?'':'s'}${capped}`);
+    els.resultStats.textContent=[['regex','wildcard','morph'].includes(searchResult.mode)?`${nice(searchResult.expanded)} indexed form${searchResult.expanded===1?'':'s'}`:'', `Page ${nice(currentPage)} of ${nice(pages)}`].filter(Boolean).join(', ');
     els.copySearchLink.disabled=false;els.exportCsv.disabled=!total;
     renderDistribution(base);
-    await renderAnalysis(base,ticket);
+    renderAnalysis(base,ticket);
     if (!total) {
       els.analysisPanel.hidden=true;
       els.results.innerHTML='<div class="empty-state">No matches. Check the spelling, remove a filter, or try another search mode.</div>';
@@ -601,7 +605,7 @@
       const doc=manifest.documents[id], body=(await loadText(id)).body, count=allCounts.get(id);
       const docRate=per10k(count,doc.indexed_tokens||0);
       const section=document.createElement('section');section.className='result-group';
-      section.innerHTML=`<div class="result-group-head"><div><h3 class="source-title">${escapeHtml(doc.title)}</h3><p class="result-meta"><span class="result-code">${escapeHtml(doc.code)}</span>${[doc.dates,doc.provenance].filter(Boolean).map(v=>`<span>\u00b7 ${escapeHtml(v)}</span>`).join('')}</p></div><span class="source-occur">${nice(count)} match${count===1?'':'es'} \u00b7 ${compactRate(docRate)} / 10k</span></div><div class="source-actions"><button type="button" data-open>Read text</button><button type="button" data-limit>Only this text</button><button type="button" data-info>Metadata</button></div><ol class="hit-list"></ol>`;
+      section.innerHTML=`<div class="result-group-head"><div><h3 class="source-title">${escapeHtml(doc.display_title||doc.title)}</h3><p class="result-meta"><span class="result-code">${escapeHtml(doc.code)}</span>${[recordDate(doc),doc.date_note||'',recordOrigin(doc)].filter(Boolean).map(v=>`<span>${escapeHtml(v)}</span>`).join('')}</p></div><span class="source-occur">${nice(count)} match${count===1?'':'es'}, ${compactRate(docRate)} / 10k</span></div><div class="source-actions"><button type="button" data-open>Read text</button><button type="button" data-limit>Only this text</button><button type="button" data-info>Metadata</button></div><ol class="hit-list"></ol>`;
       section.querySelector('[data-open]').onclick=()=>openText(id);
       section.querySelector('[data-limit]').onclick=()=>searchOnlyText(id);
       section.querySelector('[data-info]').onclick=()=>openText(id,null,'metadata');
@@ -734,11 +738,11 @@
       const ids=[...new Set(hits.map(x=>x.doc))];
       // Load sequentially to avoid congesting the connection on large exports.
       const docs=new Map();for(const id of ids)docs.set(id,(await loadText(id)).body);
-      const rows=[['query','mode','code','title','dates','provenance','token_position','character_position','matched_form','context']];
+      const rows=[['query','mode','code','title','dates','provenance','normalized_date','normalized_origin','token_position','character_position','matched_form','context']];
       for(const hit of hits){
         const d=manifest.documents[hit.doc],body=docs.get(hit.doc);
         const {start,end,matchedEnd}=contextRange(body,hit,24);
-        rows.push([searchResult.query,searchResult.mode,d.code,d.title,d.dates,d.provenance,hit.token,hit.char,body.slice(hit.char,matchedEnd),body.slice(start,end).replace(/\s+/g,' ').trim()]);
+        rows.push([searchResult.query,searchResult.mode,d.code,d.title,d.dates,d.provenance,recordDate(d),recordOrigin(d),hit.token,hit.char,body.slice(hit.char,matchedEnd),body.slice(start,end).replace(/\s+/g,' ').trim()]);
       }
       const csv=rows.map(row=>row.map(s=>`"${String(s??'').replaceAll('"','""')}"`).join(',')).join('\r\n');
       const blob=new Blob(['\ufeff',csv],{type:'text/csv;charset=utf-8'});
@@ -756,16 +760,16 @@
   function renderTextCatalogue() {
     if(!manifest)return;
     const query=fold(els.textBrowserSearch.value), sort=els.textBrowserSort.value;
-    let docs=manifest.documents.filter(d=>!query||fold([d.title,d.code,d.dates,d.provenance].join(' ')).includes(query));
+    let docs=manifest.documents.filter(d=>!query||fold([d.title,d.display_title,d.description,d.code,d.dates,recordDate(d),recordOrigin(d),d.provenance].join(' ')).includes(query));
     docs=[...docs];
     if(sort==='title')docs.sort((a,b)=>a.title.localeCompare(b.title));
-    else if(sort==='date')docs.sort((a,b)=>(a.year_min||9999)-(b.year_min||9999)||a.title.localeCompare(b.title));
+    else if(sort==='date')docs.sort((a,b)=>(recordYear(a)??9999)-(recordYear(b)??9999)||a.title.localeCompare(b.title));
     else if(sort==='words')docs.sort((a,b)=>(b.word_count||b.indexed_tokens)-(a.word_count||a.indexed_tokens));
     els.textBrowserCount.textContent=`${nice(docs.length)} of ${nice(manifest.documents.length)} texts`;
     els.textBrowser.replaceChildren();
     for (const d of docs){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><button type="button" class="text-title-button">${escapeHtml(d.title)}</button><br><span class="text-code-inline">${escapeHtml(d.code)}</span></td><td>${escapeHtml(d.dates||'—')}</td><td>${escapeHtml(d.provenance||'—')}</td><td class="numeric">${nice(d.word_count||d.indexed_tokens)}</td><td><button type="button" class="table-open">Open →</button></td>`;
+      tr.innerHTML=`<td><button type="button" class="text-title-button">${escapeHtml(d.display_title||d.title)}</button><span class="text-desc">${escapeHtml(d.description||'')}</span><br><span class="text-code-inline">${escapeHtml(d.code)}</span></td><td>${escapeHtml(recordDate(d))}</td><td>${escapeHtml(recordOrigin(d))}</td><td class="numeric">${nice(d.word_count||d.indexed_tokens)}</td><td><button type="button" class="table-open">Open →</button></td>`;
       tr.querySelectorAll('button').forEach(b=>b.onclick=()=>openText(d.id));
       els.textBrowser.append(tr);
     }
@@ -785,10 +789,10 @@
   async function loadReaderFromRoute(p) {
     const d=findDoc(p.get('doc'));if(!d){els.readerTitle.textContent='Text not found';els.readerContent.textContent='The requested text is not in this corpus.';return;}
     currentReader=d.id;
-    els.readerCode.textContent=d.code;els.readerTitle.textContent=d.title;
-    els.readerSubtitle.textContent=[d.dates,d.provenance].filter(Boolean).join(' · ');
+    els.readerCode.textContent=d.code;els.readerTitle.textContent=d.display_title||d.title;
+    els.readerSubtitle.textContent=[recordDate(d),recordOrigin(d)].filter(Boolean).join(' | ');
     els.readerDetails.replaceChildren();
-    const fields=[['MCP code',d.code],['Dates',d.dates],['Provenance',d.provenance],['Words',nice(d.word_count||d.indexed_tokens)],['Reference scheme',d.reference_scheme]];
+    const fields=[['MCP code',d.code],['Date',recordDate(d)],['Place',recordOrigin(d)],['Words',nice(d.word_count||d.indexed_tokens)],['Reference scheme',d.reference_scheme]];
     for(const [label,value] of fields)if(value){const dt=document.createElement('dt');dt.textContent=label;const dd=document.createElement('dd');dd.textContent=value;els.readerDetails.append(dt,dd);}
     readerPosition=p.has('pos')?Math.max(0,Math.floor(numeric(p.get('pos'),0))):null;
     readerTab=['text','metadata','vocabulary'].includes(p.get('tab'))?p.get('tab'):'text';
@@ -808,7 +812,7 @@
     if(!fromRoute){const params=routeParams();if(tab==='text')params.delete('tab');else params.set('tab',tab);history.replaceState(null,'',`${location.pathname}?${params}`);}
     if(tab==='metadata') {
       const d=manifest.documents[currentReader];
-      const fields=[['Title',d.title],['MCP code',d.code],['Edition',d.edition],['Manuscript',d.manuscript],['Dates',d.dates],['Provenance',d.provenance],['MCP word count',d.word_count_raw],['Reference scheme',d.reference_scheme],['Source file',d.source_file]];
+      const fields=[['Title',d.display_title||d.title],['MCP code',d.code],['Date',recordDate(d)],['Date note',d.date_note],['Origin',recordOrigin(d)],['Origin note',d.origin_note],['Edition',d.edition],['Manuscript',d.manuscript],['Archival dates',d.dates],['Archival provenance',d.provenance],['MCP word count',d.word_count_raw],['Reference scheme',d.reference_scheme],['Source file',d.source_file]];
       els.readerContent.className='reader-content metadata-view';
       els.readerContent.innerHTML=`<dl class="metadata-list">${fields.filter(([,v])=>v).map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('')}</dl><details><summary>Complete archival editorial record</summary><div class="metadata-raw">${escapeHtml(d.metadata_raw)}</div></details>`;
     } else if (tab==='vocabulary') {
@@ -911,8 +915,8 @@
       const smallScreen=window.matchMedia('(max-width: 800px)');
       els.mobileFilters.open=!smallScreen.matches;
       smallScreen.addEventListener('change',event=>{els.mobileFilters.open=!event.matches;});
-      els.corpusSummary.textContent=`${nice(manifest.document_count)} texts · ${nice(manifest.indexed_tokens)} indexed words`;
-      for(const d of manifest.documents)els.textFilter.add(new Option(`${d.code} · ${d.title}`,String(d.id)));
+      els.corpusSummary.textContent=`${nice(manifest.document_count)} texts , ${nice(manifest.indexed_tokens)} indexed words`;
+      for(const d of manifest.documents)els.textFilter.add(new Option(`${d.code} , ${d.title}`,String(d.id)));
       renderTextCatalogue();await handleRoute();
     }catch(e){
       els.corpusSummary.textContent='Corpus data could not be loaded.';

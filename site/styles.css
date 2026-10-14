@@ -292,7 +292,7 @@ h1,h2,h3,p{overflow-wrap:break-word}h1{letter-spacing:-.04em}
 }
 
 
-/* Experimental integrated analysis - core concordance layer */
+/* Search analysis */
 .analysis-panel{padding:18px 0 20px;border-bottom:1px solid var(--line)}
 .profile-line{margin:0 0 16px;color:var(--secondary);font-size:14px;font-variant-numeric:tabular-nums}
 .analysis-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(270px,.82fr);gap:28px}
@@ -332,3 +332,14 @@ h1,h2,h3,p{overflow-wrap:break-word}h1{letter-spacing:-.04em}
 .kwic-node{background:var(--highlight);font-family:var(--reading);font-size:15px;font-weight:740;padding:1px 3px;white-space:nowrap}
 @media(max-width:900px){.analysis-grid{grid-template-columns:1fr}.kwic-row{grid-template-columns:30px 48px minmax(0,1fr) auto minmax(0,1fr)}.kwic-row .hit-open{grid-column:3 / -1;justify-self:end}}
 @media(max-width:600px){.analysis-panel{padding-top:15px}.analysis-grid{gap:22px}.timeline-chart{overflow-x:auto;justify-content:flex-start}.timeline-item{flex:0 0 50px}.kwic-row{grid-template-columns:42px minmax(0,1fr) auto;gap:5px}.kwic-number{display:none}.kwic-source{grid-column:1}.kwic-left{grid-column:1 / -1;text-align:left;font-size:14px;color:var(--muted)}.kwic-node{grid-column:1;width:max-content}.kwic-right{grid-column:2 / -1;font-size:14px;white-space:normal}.kwic-row .hit-open{grid-column:3;grid-row:1}}
+
+.result-meta span:not(.result-code){border-left:1px solid var(--line);padding-left:8px}
+.text-desc{display:block;margin-top:5px;max-width:50ch;color:var(--muted);font-size:12px;line-height:1.4;font-weight:400}
+.analysis-panel{border-top:1px solid var(--line);padding-top:16px;padding-bottom:18px}
+.analysis-grid{gap:22px}
+.profile-line{font-size:13px;margin-bottom:14px}
+.collocation-chip{cursor:pointer;font-family:inherit}
+.collocation-chip:hover{background:#f3f6f9;border-color:var(--line-dark)}
+.collocation-chip:focus-visible,.timeline-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.timeline-item{cursor:pointer}
+@media(max-width:700px){.text-desc{max-width:70ch}}
